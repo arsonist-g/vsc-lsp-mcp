@@ -48,6 +48,19 @@ export class JsonFormatter implements Formatter {
     return JSON.stringify(grouped)
   }
 
+  formatDiagnostics(diagnostics: Record<string, any>[]): string {
+    const grouped: Record<string, any[]> = {}
+    for (const diagnostic of diagnostics) {
+      const { file, ...rest } = diagnostic
+      if (!file)
+        continue
+      if (!grouped[file])
+        grouped[file] = []
+      grouped[file].push(rest)
+    }
+    return JSON.stringify(grouped)
+  }
+
   formatCallHierarchyItems(items: Record<string, any>[]): string {
     const grouped: Record<string, any[]> = {}
     for (const item of items) {

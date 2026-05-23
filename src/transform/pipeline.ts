@@ -3,6 +3,7 @@ import * as vscode from 'vscode'
 import {
   extractContentText,
   flattenCallHierarchyItem,
+  flattenDiagnostics,
   flattenIncomingCall,
   flattenLabel,
   flattenLocation,
@@ -138,6 +139,19 @@ export class TransformService {
     const result = this._getFormatter().formatWorkspaceSymbols(items)
     if (total > maxResults) {
       return `${result}\n\n(Showing ${maxResults} of ${total} symbols)`
+    }
+    return result
+  }
+
+  formatDiagnostics(problems: { uri: vscode.Uri, diagnostics: vscode.Diagnostic[] }[]): string {
+    const { maxResults } = this._getConfig()
+    const allItems = flattenDiagnostics(problems)
+    const total = allItems.length
+    const items = allItems.slice(0, maxResults)
+
+    const result = this._getFormatter().formatDiagnostics(items)
+    if (total > maxResults) {
+      return `${result}\n\n(Showing ${maxResults} of ${total} problems)`
     }
     return result
   }

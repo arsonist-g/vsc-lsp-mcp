@@ -16,6 +16,8 @@ function generateEnumNameMap<T extends Record<string, string | number>>(enumObj:
 
 export const kindNames = generateEnumNameMap(vscode.CompletionItemKind)
 export const symbolKindNames = generateEnumNameMap(vscode.SymbolKind)
+const diagnosticSeverityNames = generateEnumNameMap(vscode.DiagnosticSeverity)
+const diagnosticTagNames = generateEnumNameMap(vscode.DiagnosticTag)
 
 /**
  * Convert a VSCode Range to a compact 1-based line-only string pair
@@ -263,6 +265,51 @@ export async function flattenWorkspaceSymbols(
   }
 
   return result
+}
+
+function flattenDiagnosticCode(code: vscode.Diagnostic['code']): string | number | Record<string, string | number> | undefined {
+  if (code == null)
+    return undefined
+  if (typeof code === 'object') {
+    return {
+      value: code.value,
+      target: code.target.toString(),
+    }
+  }
+  return code
+}
+
+function flattenRelatedInformation(info: vscode.DiagnosticRelatedInformation): Record<string, any> {
+  return {
+    file: getFile(info.location.uri),
+    range: formatRange(info.location.range),
+    message: info.message,
+  }
+}
+
+export function flattenDiagnostics(
+  problems: { uri: vscode.Uri, diagnostics: vscode.Diagnostic[] }[],
+): Record<string, any>[] {
+  return problems.flatMap(({ uri, diagnostics }) => diagnostics.map((diagnostic) => {
+    const item: Record<string, any> = {
+      file: getFile(uri),
+      range: formatRange(diagnostic.range),
+      severity: diagnosticSeverityNames[diagnostic.severity] ?? 'Unknown',
+      message: diagnostic.message,
+    }
+
+    const code = flattenDiagnosticCode(diagnostic.code)
+    if (code !== undefined)
+      item.code = code
+    if (diagnostic.source)
+      item.source = diagnostic.source
+    if (diagnostic.tags?.length)
+      item.tags = diagnostic.tags.map(tag => diagnosticTagNames[tag] ?? 'Unknown')
+    if (diagnostic.relatedInformation?.length)
+      item.relatedInformation = diagnostic.relatedInformation.map(flattenRelatedInformation)
+
+    return item
+  }))
 }
 
 /**

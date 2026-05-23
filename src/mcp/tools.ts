@@ -10,6 +10,7 @@ import {
   getImplementations,
   getIncomingCalls,
   getOutgoingCalls,
+  getProblems,
   getReferences,
   getWorkspaceSymbols,
   prepareCallHierarchy,
@@ -31,11 +32,13 @@ const ops = [
   'symbol_at_position',
   'incoming_calls',
   'outgoing_calls',
+  'problems',
 ] as const
 
 const uriDesc = `URI or absolute file path.
 - Plain path (no scheme): treated as absolute file path on disk, e.g. "/home/user/file.ts" or "C:/path/to/file.ts". Recommended for all file operations.
 - URI with scheme (e.g. file://, jdt://): parsed directly. Scheme part is case-insensitive, path requires proper percent-encoding. Do NOT construct file:// URIs manually.
+- Required for file-specific operations. Optional for "problems"; omit it to return all workspace Problems.
 - For "class_file_contents": must be a jdt:// URI (scheme "jdt:").`
 
 const positionOps = new Set([
@@ -72,7 +75,8 @@ Operations requiring line & character:
 Operations that do NOT need line/character:
 - document_symbols: Get symbol outline of the file (only needs uri). Returns: hierarchical symbol tree.
 - workspace_symbols: Search symbols across workspace by query (empty query returns all symbols, truncated by maxResults setting). Returns: matching symbols grouped by file.
-- class_file_contents: Get decompiled Java class source via jdt:// URI (only needs uri). Returns: Java source code.`
+- class_file_contents: Get decompiled Java class source via jdt:// URI (only needs uri). Returns: Java source code.
+- problems: Get VS Code Problems diagnostics. Optional uri filters to one file; omit uri for all workspace Problems.`
 
 export function addLspTools(server: McpServer) {
   server.registerTool(
@@ -82,7 +86,7 @@ export function addLspTools(server: McpServer) {
       description: toolDesc,
       inputSchema: {
         operation: z.enum(ops).describe('Which LSP operation to execute.'),
-        uri: z.string().describe(uriDesc),
+        uri: z.string().optional().describe(uriDesc),
         line: z.number().int().min(1).optional().describe('Line number (1-based, as shown in editor). Required for position-dependent operations.'),
         character: z.number().int().min(1).optional().describe('Character offset (1-based, as shown in editor). Required for position-dependent operations.'),
         newName: z.string().optional().describe('New symbol name. Required only for "rename".'),
@@ -92,6 +96,12 @@ export function addLspTools(server: McpServer) {
     async ({ operation, uri, line: rawLine, character: rawChar, newName, query }) => {
       let line = 0
       let character = 0
+
+      const requireUri = () => {
+        if (!uri)
+          throw new Error(`"${operation}" requires the "uri" parameter`)
+        return uri
+      }
 
       if (positionOps.has(operation)) {
         if (rawLine == null || rawChar == null) {
@@ -105,50 +115,53 @@ export function addLspTools(server: McpServer) {
 
       switch (operation) {
         case 'completions':
-          result = transform.formatCompletions(await getCompletions(uri, line, character))
+          result = transform.formatCompletions(await getCompletions(requireUri(), line, character))
           break
         case 'definition':
-          result = transform.formatLocationsOrLinks(await getDefinition(uri, line, character), 'Definition')
+          result = transform.formatLocationsOrLinks(await getDefinition(requireUri(), line, character), 'Definition')
           break
         case 'declaration':
-          result = transform.formatLocationsOrLinks(await getDeclarations(uri, line, character), 'Declaration')
+          result = transform.formatLocationsOrLinks(await getDeclarations(requireUri(), line, character), 'Declaration')
           break
         case 'implementation':
-          result = transform.formatLocationsOrLinks(await getImplementations(uri, line, character), 'Implementation')
+          result = transform.formatLocationsOrLinks(await getImplementations(requireUri(), line, character), 'Implementation')
           break
         case 'hover':
-          result = transform.formatHover(await getHover(uri, line, character))
+          result = transform.formatHover(await getHover(requireUri(), line, character))
           break
         case 'references':
-          result = transform.formatLocations(await getReferences(uri, line, character), 'References')
+          result = transform.formatLocations(await getReferences(requireUri(), line, character), 'References')
           break
         case 'document_symbols':
-          result = transform.formatDocumentSymbols(await getDocumentSymbols(uri))
+          result = transform.formatDocumentSymbols(await getDocumentSymbols(requireUri()))
           break
         case 'workspace_symbols':
           result = await transform.formatWorkspaceSymbols(await getWorkspaceSymbols(query ?? ''))
           break
         case 'class_file_contents':
-          result = transform.formatClassFile(await getClassFileContents(uri))
+          result = transform.formatClassFile(await getClassFileContents(requireUri()))
           break
         case 'rename': {
           if (!newName)
             throw new Error('"rename" requires the "newName" parameter')
-          const edit = await rename(uri, line, character, newName)
+          const edit = await rename(requireUri(), line, character, newName)
           result = transform.formatRename(edit, newName)
           break
         }
         case 'symbol_at_position': {
-          const rawItems = await prepareCallHierarchy(uri, line, character)
+          const rawItems = await prepareCallHierarchy(requireUri(), line, character)
           const items = !rawItems ? [] : (Array.isArray(rawItems) ? rawItems : [rawItems])
           result = transform.formatCallHierarchyItems(items)
           break
         }
         case 'incoming_calls':
-          result = transform.formatIncomingCalls(await getIncomingCalls(uri, line, character))
+          result = transform.formatIncomingCalls(await getIncomingCalls(requireUri(), line, character))
           break
         case 'outgoing_calls':
-          result = transform.formatOutgoingCalls(await getOutgoingCalls(uri, line, character))
+          result = transform.formatOutgoingCalls(await getOutgoingCalls(requireUri(), line, character))
+          break
+        case 'problems':
+          result = transform.formatDiagnostics(await getProblems(uri))
           break
       }
 

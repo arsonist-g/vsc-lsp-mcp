@@ -97,6 +97,38 @@ export class MarkdownFormatter implements Formatter {
     return `## Workspace Symbols\n\n${lines.join('\n')}`
   }
 
+
+  formatDiagnostics(diagnostics: Record<string, any>[]): string {
+    if (diagnostics.length === 0)
+      return '## Problems\n\nNo problems found.'
+
+    const grouped: Record<string, any[]> = {}
+    for (const diagnostic of diagnostics) {
+      const { file, ...rest } = diagnostic
+      if (!file)
+        continue
+      if (!grouped[file])
+        grouped[file] = []
+      grouped[file].push(rest)
+    }
+
+    const lines = Object.entries(grouped).flatMap(([file, items]) => {
+      const itemLines = items.map((item) => {
+        const parts: string[] = [`${item.severity} at ${item.range}`]
+        if (item.source)
+          parts.push(`source: ${item.source}`)
+        if (item.code !== undefined)
+          parts.push(`code: ${typeof item.code === 'object' ? item.code.value : item.code}`)
+        if (item.tags?.length)
+          parts.push(`tags: ${item.tags.join(', ')}`)
+        return `  - ${parts.join(', ')}: ${item.message}`
+      })
+      return [`\`${file}\``, ...itemLines]
+    })
+
+    return `## Problems\n\n${lines.join('\n')}`
+  }
+
   formatCallHierarchyItems(items: Record<string, any>[]): string {
     if (items.length === 0)
       return '## Call Hierarchy\n\nNo items found.'

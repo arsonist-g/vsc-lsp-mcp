@@ -55,7 +55,7 @@ This extension bridges that gap, providing AI tools with the same code intellige
 
 - 🔄 **LSP Bridge**: Converts LSP features into MCP tools
 - 🔌 **Multi-Instance Support**: Automatically handles port conflicts for multiple VSCode windows
-- 🧠 **16 LSP operations** covering navigation (definition, declaration, implementation, references), documentation (hover, completions), structure (document/workspace symbols, call hierarchy), and manipulation (rename)
+- 🧠 **17 LSP operations** covering navigation (definition, declaration, implementation, references), documentation (hover, completions), structure (document/workspace symbols, call hierarchy), diagnostics (Problems), and manipulation (rename)
 - ☕ **Java dependency source**: Get decompiled Java class source via jdt:// URI (from jdtls), so AI can read library implementations
 - 📄 **Dual output format**: JSON for machine processing, Markdown for LLM-friendly reading
 
@@ -76,10 +76,11 @@ This extension bridges that gap, providing AI tools with the same code intellige
 | `symbol_at_position` | Get symbol metadata (name, kind, range) at a position |
 | `incoming_calls` | Find all callers of a symbol |
 | `outgoing_calls` | Find all callees (calls made by) a symbol |
+| `problems` | Get VS Code Problems diagnostics for one file or the whole workspace |
 
 All operations are invoked through the single `execute_lsp` MCP tool with a unified input format:
 - `operation` — which LSP operation to execute
-- `uri` — file path or URI string (supports both plain paths and `file://`/`jdt://` URIs)
+- `uri` — file path or URI string (supports both plain paths and `file://`/`jdt://` URIs). Optional for `problems`; omit it to return all workspace Problems
 - `line` — line number (**1-based**, matching editor display). Required for position-dependent operations
 - `character` — character offset (**1-based**, matching editor display). Required for position-dependent operations
 - `newName` — required only for `rename`

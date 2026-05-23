@@ -55,7 +55,7 @@ VSCode LSP MCP 是一个 Visual Studio Code 扩展。**扩展 ID**：`cjl.lsp-mc
 
 - 🔄 **LSP 桥接**：将 LSP 功能转换为 MCP 工具
 - 🔌 **多实例支持**：自动处理多个 VSCode 窗口的端口冲突
-- 🧠 **16 项 LSP 操作**：涵盖代码导航（定义、声明、实现、引用）、文档信息（悬停、补全）、结构分析（文档/工作区符号、调用层次）、代码重构（重命名）
+- 🧠 **17 项 LSP 操作**：涵盖代码导航（定义、声明、实现、引用）、文档信息（悬停、补全）、结构分析（文档/工作区符号、调用层次）、诊断信息（Problems）、代码重构（重命名）
 - ☕ **Java 依赖源码**：通过 `jdt://` URI 获取 jdtls 反编译的类源码，便于 AI 阅读依赖库实现
 - 📄 **双格式输出**：JSON 用于机器处理，Markdown 用于 LLM 友好阅读
 
@@ -76,10 +76,11 @@ VSCode LSP MCP 是一个 Visual Studio Code 扩展。**扩展 ID**：`cjl.lsp-mc
 | `symbol_at_position` | 获取指定位置的符号元数据（名称、类型、范围） |
 | `incoming_calls` | 查找所有调用当前符号的位置 |
 | `outgoing_calls` | 查找当前符号调用的所有被调用者 |
+| `problems` | 获取单个文件或整个工作区的 VS Code Problems 诊断信息 |
 
 所有操作通过单个 `execute_lsp` MCP 工具调用，输入格式统一：
 - `operation` — 要执行的 LSP 操作
-- `uri` — 文件路径或 URI（支持普通路径和 `file://`/`jdt://` URI）
+- `uri` — 文件路径或 URI（支持普通路径和 `file://`/`jdt://` URI）。对 `problems` 可选；省略时返回整个工作区的 Problems
 - `line` — 行号（**1-based**，与编辑器显示一致）。位置相关操作必填
 - `character` — 列号（**1-based**，与编辑器显示一致）。位置相关操作必填
 - `newName` — 仅 `rename` 操作需要

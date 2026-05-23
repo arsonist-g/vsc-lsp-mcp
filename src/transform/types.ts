@@ -63,6 +63,14 @@ export interface Formatter {
   formatWorkspaceSymbols: (symbols: Record<string, any>[]) => string
 
   /**
+   * Format diagnostics shown in the Problems panel
+   *
+   * @param diagnostics - Array of flattened diagnostics ({file, range, severity, message, source?, code?, tags?, relatedInformation?})
+   * @returns Formatted string
+   */
+  formatDiagnostics: (diagnostics: Record<string, any>[]) => string
+
+  /**
    * Format call hierarchy items
    *
    * @param items - Array of flattened call hierarchy items ({name, kind, detail?, file, range, namePosition})
