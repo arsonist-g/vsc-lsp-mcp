@@ -1,4 +1,5 @@
 import * as vscode from 'vscode'
+import type { LspExecutionScope } from '../mcp/executor'
 import { logger } from '../utils/logger'
 
 /**
@@ -7,11 +8,14 @@ import { logger } from '../utils/logger'
  * @param uri - The jdt:// URI of the class file
  * @returns Raw source code text
  */
-export async function getClassFileContents(uri: string): Promise<string> {
+export async function getClassFileContents(uri: string, scope?: LspExecutionScope): Promise<string> {
   try {
     if (!uri.startsWith('jdt://')) {
       throw new Error(`Invalid URI format, expected jdt:// prefix: ${uri}`)
     }
+
+    if (!scope?.projectPath && !scope?.windowId)
+      throw new Error('class_file_contents for jdt:// requires projectPath or windowId')
 
     logger.info(`Getting class file contents: ${uri}`)
 

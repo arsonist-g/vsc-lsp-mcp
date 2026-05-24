@@ -1,5 +1,7 @@
 import * as vscode from 'vscode'
+import type { LspExecutionScope } from '../mcp/executor'
 import { logger } from '../utils/logger'
+import { fsPathFromUriLike, isPathInWorkspace } from '../workspace/info'
 
 /**
  * Resolve a file path string or URI string into a VSCode Uri.
@@ -9,11 +11,29 @@ import { logger } from '../utils/logger'
  * @param input - File path or URI string
  * @returns VSCode Uri
  */
-function resolveUri(input: string): vscode.Uri {
+export function resolveUri(input: string): vscode.Uri {
   if (/^(file|jdt):\/\//.test(input)) {
     return vscode.Uri.parse(input)
   }
   return vscode.Uri.file(input)
+}
+
+function assertDocumentAllowed(uri: string, scope?: LspExecutionScope): void {
+  if (!scope || scope.allowFilesOutsideWorkspace)
+    return
+
+  const fsPath = fsPathFromUriLike(uri)
+  if (!fsPath)
+    return
+
+  if (!isPathInWorkspace(fsPath, scope.workspaceFolders.map(folder => ({
+    name: folder,
+    uri: vscode.Uri.file(folder).toString(),
+    fsPath: folder,
+    normalizedPath: folder,
+  })))) {
+    throw new Error(`File is outside the routed VS Code workspace: ${uri}`)
+  }
 }
 
 /**
@@ -22,8 +42,9 @@ function resolveUri(input: string): vscode.Uri {
  * @param uri - Document URI or file path
  * @returns TextDocument or undefined
  */
-export async function getDocument(uri: string): Promise<vscode.TextDocument | undefined> {
+export async function getDocument(uri: string, scope?: LspExecutionScope): Promise<vscode.TextDocument | undefined> {
   try {
+    assertDocumentAllowed(uri, scope)
     const docUri = resolveUri(uri)
 
     for (const doc of vscode.workspace.textDocuments) {

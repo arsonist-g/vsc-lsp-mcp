@@ -1,4 +1,5 @@
 import * as vscode from 'vscode'
+import type { LspExecutionScope } from '../mcp/executor'
 import { logger } from '../utils/logger'
 import { getDocument } from './tools'
 
@@ -14,9 +15,10 @@ export async function getImplementations(
   uri: string,
   line: number,
   character: number,
+  scope?: LspExecutionScope,
 ): Promise<vscode.Location | vscode.Location[] | vscode.LocationLink[]> {
   try {
-    const document = await getDocument(uri)
+    const document = await getDocument(uri, scope)
     if (!document) {
       throw new Error(`Failed to find document: ${uri}`)
     }

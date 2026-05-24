@@ -102,4 +102,9 @@ export const logger = {
   clear(): void {
     getOutputChannel().clear()
   },
+
+  dispose(): void {
+    outputChannel?.dispose()
+    outputChannel = undefined
+  },
 }

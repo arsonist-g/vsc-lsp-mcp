@@ -1,57 +1,112 @@
+import type { Server } from 'node:http'
 import type express from 'express'
 import { window } from 'vscode'
 import { logger } from '../utils/logger'
 
-/**
- * 尝试启动服务器，如果端口被占用则尝试其他端口
- * @param app - 应用实例
- * @param initialPort - 初始端口
- * @param maxRetries - 最大重试次数
- */
-export function startServer(app: express.Express, initialPort: number, maxRetries: number) {
+export interface StartedHttpServer {
+  server: Server
+  port: number
+  close: () => Promise<void>
+}
+
+export interface StartServerOptions {
+  host?: string
+  allowPortFallback?: boolean
+  maxRetries?: number
+  showStartedMessage?: boolean
+  serviceName?: string
+}
+
+function toOptions(options: number | StartServerOptions = {}): StartServerOptions {
+  if (typeof options === 'number') {
+    return {
+      allowPortFallback: options > 0,
+      maxRetries: options,
+      showStartedMessage: true,
+      serviceName: 'LSP MCP',
+    }
+  }
+
+  return options
+}
+
+export async function startServer(
+  app: express.Express,
+  initialPort: number,
+  rawOptions: number | StartServerOptions = {},
+): Promise<StartedHttpServer | undefined> {
+  const options = toOptions(rawOptions)
+  const host = options.host ?? '127.0.0.1'
+  const allowPortFallback = options.allowPortFallback ?? false
+  const maxRetries = options.maxRetries ?? 0
+  const serviceName = options.serviceName ?? 'LSP MCP'
   let currentPort = initialPort
   let retries = 0
   let hasShownPortConflict = false
 
-  const tryListen = () => {
-    logger.info(`Starting LSP MCP server on port ${currentPort}`)
-    const server = app.listen(currentPort, (error: Error | undefined) => {
-      // 不打印多个窗口同时启动的冲突
-      if (error) {
-        logger.error(`Failed to start LSP MCP server on port ${currentPort}`, error)
-        return
-      }
+  const tryListen = (): Promise<StartedHttpServer | undefined> => {
+    return new Promise((resolve, reject) => {
+      logger.info(`Starting ${serviceName} server on ${host}:${currentPort}`)
 
-      logger.info(`LSP MCP server started on port ${currentPort}`)
+      const server = app.listen(currentPort, host, () => {
+        const address = server.address()
+        const port = typeof address === 'object' && address ? address.port : currentPort
 
-      // 如果之前显示过端口冲突提示，则显示最终成功启动的消息
-      if (hasShownPortConflict) {
-        window.showInformationMessage(`LSP MCP 启动在 ${currentPort}（原端口 ${initialPort} 被占用）`)
-      }
-      else {
-        window.showInformationMessage(`LSP MCP 启动在 ${currentPort}`)
-      }
-    })
+        logger.info(`${serviceName} server started on ${host}:${port}`)
 
-    server.on('error', (err: NodeJS.ErrnoException) => {
-      if (err.code === 'EADDRINUSE' && retries < maxRetries) {
-        logger.warn(`LSP MCP port ${currentPort} is occupied, trying ${currentPort + 1}`, {
-          code: err.code,
-          message: err.message,
+        if (options.showStartedMessage) {
+          if (hasShownPortConflict) {
+            window.showWarningMessage(`${serviceName} 启动在 ${port}（原端口 ${initialPort} 被占用，请确认客户端连接实际端口）`)
+          }
+          else {
+            window.showInformationMessage(`${serviceName} 启动在 ${port}`)
+          }
+        }
+
+        resolve({
+          server,
+          port,
+          close: () => new Promise<void>((closeResolve, closeReject) => {
+            server.close((error) => {
+              if (error) {
+                closeReject(error)
+                return
+              }
+              closeResolve()
+            })
+          }),
         })
-        // 端口被占用，尝试下一个端口
-        retries++
-        currentPort++
-        hasShownPortConflict = true
+      })
 
-        tryListen()
-      }
-      else {
-        logger.error(`Unable to start LSP MCP server on port ${currentPort}`, err)
-        window.showErrorMessage(`无法启动 LSP MCP 服务: ${err.message}`)
-      }
+      server.once('error', async (err: NodeJS.ErrnoException) => {
+        server.removeAllListeners()
+
+        if (err.code === 'EADDRINUSE' && allowPortFallback && retries < maxRetries) {
+          logger.warn(`${serviceName} port ${currentPort} is occupied, trying ${currentPort + 1}`, {
+            code: err.code,
+            message: err.message,
+          })
+          retries++
+          currentPort++
+          hasShownPortConflict = true
+          resolve(await tryListen())
+          return
+        }
+
+        if (err.code === 'EADDRINUSE') {
+          logger.warn(`${serviceName} port ${currentPort} is occupied`, {
+            code: err.code,
+            message: err.message,
+          })
+          resolve(undefined)
+          return
+        }
+
+        logger.error(`Unable to start ${serviceName} server on ${host}:${currentPort}`, err)
+        reject(err)
+      })
     })
   }
 
-  tryListen()
+  return tryListen()
 }

@@ -1,58 +1,18 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
-import {
-  getClassFileContents,
-  getCompletions,
-  getDeclarations,
-  getDefinition,
-  getDocumentSymbols,
-  getHover,
-  getImplementations,
-  getIncomingCalls,
-  getOutgoingCalls,
-  getProblems,
-  getReferences,
-  getWorkspaceSymbols,
-  prepareCallHierarchy,
-  rename,
-} from '../lsp'
-import { transform } from '../transform'
-
-const ops = [
-  'completions',
-  'definition',
-  'declaration',
-  'implementation',
-  'hover',
-  'references',
-  'document_symbols',
-  'workspace_symbols',
-  'class_file_contents',
-  'rename',
-  'symbol_at_position',
-  'incoming_calls',
-  'outgoing_calls',
-  'problems',
-] as const
+import { executeLspOperation, ops } from './executor'
+import type { ExecuteLspArgs } from './executor'
 
 const uriDesc = `URI or absolute file path.
 - Plain path (no scheme): treated as absolute file path on disk, e.g. "/home/user/file.ts" or "C:/path/to/file.ts". Recommended for all file operations.
 - URI with scheme (e.g. file://, jdt://): parsed directly. Scheme part is case-insensitive, path requires proper percent-encoding. Do NOT construct file:// URIs manually.
-- Required for file-specific operations. Optional for "problems"; omit it to return all workspace Problems.
+- Required for file-specific operations. Optional for "problems"; omit it to return all workspace Problems for the routed project.
 - For "class_file_contents": must be a jdt:// URI (scheme "jdt:").`
 
-const positionOps = new Set([
-  'completions',
-  'definition',
-  'declaration',
-  'implementation',
-  'hover',
-  'references',
-  'rename',
-  'symbol_at_position',
-  'incoming_calls',
-  'outgoing_calls',
-])
+const projectPathDesc = `Absolute path to the intended project or workspace root.
+- Recommended when multiple VS Code windows are open.
+- Required for workspace-wide operations when the target window cannot be inferred from uri/cwd.
+- Required for jdt:// class_file_contents and rename when multiple projects are registered.`
 
 const toolDesc = `Execute an LSP operation.
 
@@ -76,9 +36,11 @@ Operations that do NOT need line/character:
 - document_symbols: Get symbol outline of the file (only needs uri). Returns: hierarchical symbol tree.
 - workspace_symbols: Search symbols across workspace by query (empty query returns all symbols, truncated by maxResults setting). Returns: matching symbols grouped by file.
 - class_file_contents: Get decompiled Java class source via jdt:// URI (only needs uri). Returns: Java source code.
-- problems: Get VS Code Problems diagnostics. Optional uri filters to one file; omit uri for all workspace Problems.`
+- problems: Get VS Code Problems diagnostics. Optional uri filters to one file; omit uri to return all workspace Problems for the routed project.`
 
-export function addLspTools(server: McpServer) {
+export type ExecuteLspHandler = (args: ExecuteLspArgs) => Promise<string>
+
+export function addLspTools(server: McpServer, execute: ExecuteLspHandler = executeLspOperation) {
   server.registerTool(
     'execute_lsp',
     {
@@ -91,80 +53,13 @@ export function addLspTools(server: McpServer) {
         character: z.number().int().min(1).optional().describe('Character offset (1-based, as shown in editor). Required for position-dependent operations.'),
         newName: z.string().optional().describe('New symbol name. Required only for "rename".'),
         query: z.string().optional().describe('Search query. Required only for "workspace_symbols".'),
+        projectPath: z.string().optional().describe(projectPathDesc),
+        cwd: z.string().optional().describe('Current working directory of the caller. Used to route requests to the matching VS Code window when projectPath is omitted.'),
+        windowId: z.string().optional().describe('Explicit VS Code window instance ID. Use only when disambiguating multiple matching windows.'),
       },
     },
-    async ({ operation, uri, line: rawLine, character: rawChar, newName, query }) => {
-      let line = 0
-      let character = 0
-
-      const requireUri = () => {
-        if (!uri)
-          throw new Error(`"${operation}" requires the "uri" parameter`)
-        return uri
-      }
-
-      if (positionOps.has(operation)) {
-        if (rawLine == null || rawChar == null) {
-          throw new Error(`"${operation}" requires "line" and "character" parameters (1-based)`)
-        }
-        line = rawLine - 1
-        character = rawChar - 1
-      }
-
-      let result: string
-
-      switch (operation) {
-        case 'completions':
-          result = transform.formatCompletions(await getCompletions(requireUri(), line, character))
-          break
-        case 'definition':
-          result = transform.formatLocationsOrLinks(await getDefinition(requireUri(), line, character), 'Definition')
-          break
-        case 'declaration':
-          result = transform.formatLocationsOrLinks(await getDeclarations(requireUri(), line, character), 'Declaration')
-          break
-        case 'implementation':
-          result = transform.formatLocationsOrLinks(await getImplementations(requireUri(), line, character), 'Implementation')
-          break
-        case 'hover':
-          result = transform.formatHover(await getHover(requireUri(), line, character))
-          break
-        case 'references':
-          result = transform.formatLocations(await getReferences(requireUri(), line, character), 'References')
-          break
-        case 'document_symbols':
-          result = transform.formatDocumentSymbols(await getDocumentSymbols(requireUri()))
-          break
-        case 'workspace_symbols':
-          result = await transform.formatWorkspaceSymbols(await getWorkspaceSymbols(query ?? ''))
-          break
-        case 'class_file_contents':
-          result = transform.formatClassFile(await getClassFileContents(requireUri()))
-          break
-        case 'rename': {
-          if (!newName)
-            throw new Error('"rename" requires the "newName" parameter')
-          const edit = await rename(requireUri(), line, character, newName)
-          result = transform.formatRename(edit, newName)
-          break
-        }
-        case 'symbol_at_position': {
-          const rawItems = await prepareCallHierarchy(requireUri(), line, character)
-          const items = !rawItems ? [] : (Array.isArray(rawItems) ? rawItems : [rawItems])
-          result = transform.formatCallHierarchyItems(items)
-          break
-        }
-        case 'incoming_calls':
-          result = transform.formatIncomingCalls(await getIncomingCalls(requireUri(), line, character))
-          break
-        case 'outgoing_calls':
-          result = transform.formatOutgoingCalls(await getOutgoingCalls(requireUri(), line, character))
-          break
-        case 'problems':
-          result = transform.formatDiagnostics(await getProblems(uri))
-          break
-      }
-
+    async (args) => {
+      const result = await execute(args as ExecuteLspArgs)
       return { content: [{ type: 'text', text: result }] }
     },
   )

@@ -1,152 +1,164 @@
 import { randomUUID } from 'node:crypto'
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
-import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js'
-import express from 'express'
 import { window, workspace } from 'vscode'
-import { logger } from '../utils/logger'
+import type * as vscode from 'vscode'
+import { startBroker } from './broker'
 import { transports } from './config'
-import { cors } from './cors'
-import { handleSessionRequest } from './session'
-import { startServer } from './startServer'
-import { addLspTools } from './tools'
+import { startInstanceRpc } from './rpc'
+import type { LspMcpInstance } from './routing'
+import { getWorkspaceFoldersInfo } from '../workspace/info'
+import { logger } from '../utils/logger'
 
-function getErrorDetails(error: unknown): Record<string, unknown> {
-  if (error instanceof Error) {
-    return {
-      name: error.name,
-      message: error.message,
-      code: 'code' in error ? error.code : undefined,
-    }
-  }
-
-  return { message: String(error) }
+function getNumberConfig(config: vscode.WorkspaceConfiguration, key: string, fallback: number): number {
+  const value = config.get<number>(key, fallback)
+  return typeof value === 'number' ? value : fallback
 }
 
-export function startMcp() {
+async function postJson(url: string, body: unknown): Promise<Response> {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+async function registerWithBroker(brokerUrl: string, instance: LspMcpInstance): Promise<boolean> {
+  try {
+    const response = await postJson(`${brokerUrl}/instances/register`, instance)
+    return response.ok
+  }
+  catch (error) {
+    logger.warn('Failed to register LSP MCP instance with broker', {
+      brokerUrl,
+      message: error instanceof Error ? error.message : String(error),
+    })
+    return false
+  }
+}
+
+async function unregisterFromBroker(brokerUrl: string, windowId: string): Promise<void> {
+  try {
+    await postJson(`${brokerUrl}/instances/unregister`, { windowId })
+  }
+  catch (error) {
+    logger.warn('Failed to unregister LSP MCP instance from broker', {
+      brokerUrl,
+      message: error instanceof Error ? error.message : String(error),
+    })
+  }
+}
+
+export async function startMcp(_context?: vscode.ExtensionContext): Promise<vscode.Disposable | undefined> {
   const config = workspace.getConfiguration('lsp-mcp')
   const isMcpEnabled = config.get('enabled', true)
-  const mcpPort = config.get('port', 9527)
-  const maxRetries = config.get('maxRetries', 10)
+  const mcpPort = getNumberConfig(config, 'port', 9527)
 
-  // CORS 配置
   const corsEnabled = config.get('cors.enabled', true)
   const allowOriginsStr: string = config.get('cors.allowOrigins', '*')
   const withCredentials = config.get('cors.withCredentials', false)
   const exposeHeadersStr: string = config.get('cors.exposeHeaders', 'Mcp-Session-Id')
+
+  const heartbeatIntervalMs = getNumberConfig(config, 'broker.heartbeatIntervalMs', 5000)
+  const staleTimeoutMs = getNumberConfig(config, 'broker.staleTimeoutMs', 15000)
+  const allowSingleInstanceFallback = config.get('routing.allowSingleInstanceFallback', true)
+  const requireProjectPathForAmbiguousRequests = config.get('routing.requireProjectPathForAmbiguousRequests', true)
+  const allowFilesOutsideWorkspace = config.get('security.allowFilesOutsideWorkspace', false)
 
   if (!isMcpEnabled) {
     logger.warn('LSP MCP server is disabled by configuration.')
     window.showInformationMessage('LSP MCP server is disabled by configuration.')
     return
   }
-  const app = express()
 
-  // 应用 CORS 中间件（必须在其他中间件之前）
-  if (corsEnabled) {
-    const allowOrigins = allowOriginsStr === '*'
-      ? '*'
-      : allowOriginsStr.split(',').map(origin => origin.trim())
-
-    const exposeHeaders = exposeHeadersStr.split(',').map(header => header.trim())
-
-    app.use(cors(allowOrigins, withCredentials, exposeHeaders))
-  }
-
-  app.use(express.json())
-
-  // Handle POST requests for client-to-server communication
-  app.post('/mcp', async (req, res) => {
-    let phase = 'routing request'
-    let sessionId = req.headers['mcp-session-id'] as string | undefined
-
-    try {
-      let transport: StreamableHTTPServerTransport
-
-      if (sessionId && transports[sessionId]) {
-        // Reuse existing transport
-        transport = transports[sessionId]
-      }
-      else if (!sessionId && isInitializeRequest(req.body)) {
-        phase = 'initializing MCP transport'
-        // New initialization request
-        transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: () => randomUUID(),
-          onsessioninitialized: (newSessionId) => {
-            // Store the transport by session ID
-            sessionId = newSessionId
-            transports[newSessionId] = transport
-            logger.info(`MCP session initialized: ${newSessionId}`)
-          },
-          allowedHosts: ['127.0.0.1', 'localhost'],
-        })
-
-        // Clean up transport when closed
-        transport.onclose = () => {
-          if (transport.sessionId) {
-            logger.info(`MCP session closed: ${transport.sessionId}`)
-            delete transports[transport.sessionId]
-          }
-        }
-
-        const server = new McpServer({
-          name: 'lsp-server',
-          version: '0.0.2',
-        })
-
-        // Add LSP tools to the server
-        addLspTools(server)
-
-        phase = 'connecting MCP server to transport'
-        // Connect to the MCP server
-        await server.connect(transport)
-      }
-      else {
-        // Invalid request
-        res.status(400).json({
-          jsonrpc: '2.0',
-          error: {
-            code: -32000,
-            message: 'Bad Request: No valid session ID provided',
-            data: {
-              sessionIdProvided: Boolean(sessionId),
-              knownSessionIds: Object.keys(transports),
-              initializeRequest: isInitializeRequest(req.body),
-            },
-          },
-          id: null,
-        })
-        return
-      }
-
-      phase = 'handling MCP request'
-      // Handle the request
-      await transport.handleRequest(req, res, req.body)
-    }
-    catch (error) {
-      logger.error(`MCP POST /mcp failed while ${phase}`, error)
-
-      if (res.headersSent)
-        return
-
-      res.status(500).json({
-        jsonrpc: '2.0',
-        error: {
-          code: -32603,
-          message: `MCP request failed while ${phase}`,
-          data: {
-            sessionId,
-            ...getErrorDetails(error),
-          },
-        },
-        id: req.body?.id ?? null,
-      })
-    }
+  const workspaceFolders = getWorkspaceFoldersInfo()
+  const windowId = randomUUID()
+  const instanceRpc = await startInstanceRpc({
+    windowId,
+    workspaceFolders,
+    allowFilesOutsideWorkspace,
   })
 
-  // Handle GET requests for server-to-client notifications via SSE
-  app.get('/mcp', handleSessionRequest)
+  let isDisposed = false
+  let heartbeat: NodeJS.Timeout | undefined
+  const brokerUrl = `http://127.0.0.1:${mcpPort}`
+  const instance: LspMcpInstance = {
+    windowId,
+    rpcUrl: instanceRpc.rpcUrl,
+    secret: instanceRpc.secret,
+    workspaceFolders,
+    isBroker: false,
+    startedAt: Date.now(),
+    lastSeen: Date.now(),
+  }
 
-  // 尝试启动服务器，处理端口冲突
-  startServer(app, mcpPort, maxRetries)
+  const allowOrigins = allowOriginsStr === '*'
+    ? '*'
+    : allowOriginsStr.split(',').map(origin => origin.trim())
+  const exposeHeaders = exposeHeadersStr.split(',').map(header => header.trim())
+
+  const broker = await startBroker({
+    port: mcpPort,
+    corsEnabled,
+    allowOrigins,
+    withCredentials,
+    exposeHeaders,
+    routing: {
+      allowSingleInstanceFallback,
+      requireProjectPathForAmbiguousRequests,
+    },
+    staleTimeoutMs,
+  })
+
+  if (broker) {
+    instance.isBroker = true
+    broker.registerLocalInstance(instance)
+    logger.info('This VS Code window is the LSP MCP broker', { windowId, port: mcpPort })
+  }
+  else {
+    const registered = await registerWithBroker(brokerUrl, instance)
+    if (registered) {
+      logger.info('Registered this VS Code window with LSP MCP broker', { windowId, brokerUrl })
+      heartbeat = setInterval(async () => {
+        if (isDisposed)
+          return
+
+        const response = await postJson(`${brokerUrl}/instances/heartbeat`, { windowId }).catch(() => undefined)
+        if (!response?.ok) {
+          logger.warn('LSP MCP broker heartbeat failed, trying to re-register', { windowId, brokerUrl })
+          await registerWithBroker(brokerUrl, instance)
+        }
+      }, heartbeatIntervalMs)
+    }
+    else {
+      window.showWarningMessage(`LSP MCP broker 端口 ${mcpPort} 已被占用，但未能注册到 broker。当前窗口无法通过稳定 MCP 入口访问。`)
+    }
+  }
+
+  return {
+    dispose: () => {
+      isDisposed = true
+
+      if (heartbeat)
+        clearInterval(heartbeat)
+
+      const cleanup = async () => {
+        if (!broker)
+          await unregisterFromBroker(brokerUrl, windowId)
+
+        for (const sessionId of Object.keys(transports)) {
+          await transports[sessionId].close().catch(error => logger.warn('Failed to close MCP transport', {
+            sessionId,
+            message: error instanceof Error ? error.message : String(error),
+          }))
+          delete transports[sessionId]
+        }
+
+        if (broker)
+          await broker.dispose()
+
+        await instanceRpc.server.close()
+      }
+
+      cleanup().catch(error => logger.error('Failed to dispose LSP MCP runtime', error))
+    },
+  }
 }

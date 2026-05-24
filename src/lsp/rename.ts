@@ -1,6 +1,27 @@
 import * as vscode from 'vscode'
+import type { LspExecutionScope } from '../mcp/executor'
 import { logger } from '../utils/logger'
+import { isPathInWorkspace } from '../workspace/info'
 import { getDocument } from './tools'
+
+function assertWorkspaceEditAllowed(edit: vscode.WorkspaceEdit, scope?: LspExecutionScope): void {
+  if (!scope || scope.allowFilesOutsideWorkspace)
+    return
+
+  const rejected = edit.entries()
+    .map(([uri]) => uri)
+    .filter(uri => uri.scheme === 'file' && !isPathInWorkspace(uri.fsPath, scope.workspaceFolders.map(folder => ({
+      name: folder,
+      uri: vscode.Uri.file(folder).toString(),
+      fsPath: folder,
+      normalizedPath: folder,
+    }))))
+    .map(uri => uri.fsPath)
+
+  if (rejected.length > 0) {
+    throw new Error(`Rename would edit files outside the routed workspace: ${rejected.slice(0, 5).join(', ')}`)
+  }
+}
 
 /**
  * Rename a symbol across the workspace.
@@ -17,9 +38,10 @@ export async function rename(
   line: number,
   character: number,
   newName: string,
+  scope?: LspExecutionScope,
 ): Promise<vscode.WorkspaceEdit> {
   try {
-    const document = await getDocument(uri)
+    const document = await getDocument(uri, scope)
     if (!document) {
       throw new Error(`Failed to find document: ${uri}`)
     }
@@ -52,6 +74,7 @@ export async function rename(
       throw new Error('Rename returned no changes')
     }
 
+    assertWorkspaceEditAllowed(edit, scope)
     await vscode.workspace.applyEdit(edit)
 
     return edit

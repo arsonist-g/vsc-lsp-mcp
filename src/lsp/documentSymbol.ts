@@ -1,4 +1,5 @@
 import * as vscode from 'vscode'
+import type { LspExecutionScope } from '../mcp/executor'
 import { logger } from '../utils/logger'
 import { getDocument } from './tools'
 
@@ -10,9 +11,10 @@ import { getDocument } from './tools'
  */
 export async function getDocumentSymbols(
   uri: string,
+  scope?: LspExecutionScope,
 ): Promise<(vscode.SymbolInformation | vscode.DocumentSymbol)[]> {
   try {
-    const document = await getDocument(uri)
+    const document = await getDocument(uri, scope)
     if (!document) {
       throw new Error(`Failed to find document: ${uri}`)
     }

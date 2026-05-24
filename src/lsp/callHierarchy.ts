@@ -1,4 +1,5 @@
 import * as vscode from 'vscode'
+import type { LspExecutionScope } from '../mcp/executor'
 import { logger } from '../utils/logger'
 import { getDocument } from './tools'
 
@@ -14,9 +15,10 @@ export async function prepareCallHierarchy(
   uri: string,
   line: number,
   character: number,
+  scope?: LspExecutionScope,
 ): Promise<vscode.CallHierarchyItem | readonly vscode.CallHierarchyItem[]> {
   try {
-    const document = await getDocument(uri)
+    const document = await getDocument(uri, scope)
     if (!document) {
       throw new Error(`Failed to find document: ${uri}`)
     }
@@ -52,9 +54,10 @@ export async function getIncomingCalls(
   uri: string,
   line: number,
   character: number,
+  scope?: LspExecutionScope,
 ): Promise<vscode.CallHierarchyIncomingCall[]> {
   try {
-    const document = await getDocument(uri)
+    const document = await getDocument(uri, scope)
     if (!document) {
       throw new Error(`Failed to find document: ${uri}`)
     }
@@ -109,9 +112,10 @@ export async function getOutgoingCalls(
   uri: string,
   line: number,
   character: number,
+  scope?: LspExecutionScope,
 ): Promise<vscode.CallHierarchyOutgoingCall[]> {
   try {
-    const document = await getDocument(uri)
+    const document = await getDocument(uri, scope)
     if (!document) {
       throw new Error(`Failed to find document: ${uri}`)
     }

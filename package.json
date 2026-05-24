@@ -48,7 +48,44 @@
         "lsp-mcp.maxRetries": {
           "type": "number",
           "default": 10,
-          "description": "Maximum number of port retry attempts when the default port is occupied."
+          "description": "Legacy port retry setting. In broker routing mode the public MCP entrypoint does not auto-increment to avoid connecting clients to the wrong VS Code window."
+        },
+        "lsp-mcp.routing.requireProjectPathForAmbiguousRequests": {
+          "type": "boolean",
+          "default": true,
+          "description": "Require projectPath, cwd, uri, or windowId when multiple VS Code windows could handle an LSP request."
+        },
+        "lsp-mcp.routing.allowSingleInstanceFallback": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow routing requests without projectPath when only one VS Code window instance is registered."
+        },
+        "lsp-mcp.security.allowFilesOutsideWorkspace": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow LSP operations to open or edit files outside the routed VS Code workspace. Disabled by default."
+        },
+        "lsp-mcp.rename.requireProjectPath": {
+          "type": "boolean",
+          "default": true,
+          "description": "Require explicit project routing for rename operations when multiple VS Code windows are registered."
+        },
+        "lsp-mcp.rename.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable rename refactoring through the LSP MCP server."
+        },
+        "lsp-mcp.broker.heartbeatIntervalMs": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 1000,
+          "description": "Interval in milliseconds for VS Code window instances to send heartbeats to the broker."
+        },
+        "lsp-mcp.broker.staleTimeoutMs": {
+          "type": "number",
+          "default": 15000,
+          "minimum": 3000,
+          "description": "Time in milliseconds after which the broker removes a window instance that stopped sending heartbeats."
         },
         "lsp-mcp.cors.enabled": {
           "type": "boolean",
