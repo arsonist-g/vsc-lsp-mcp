@@ -2,6 +2,7 @@
   "name": "lsp-mcp",
   "displayName": "LSP MCP",
   "version": "0.1.0",
+  "packageManager": "pnpm@10.33.4",
   "description": "LSP MCP Server for VSCode",
   "publisher": "CJL",
   "author": "CJL <2662442385@qq.com>",
