@@ -7,6 +7,10 @@ export interface ProblemDiagnostics {
   diagnostics: vscode.Diagnostic[]
 }
 
+function isWorkspaceResource(resource: vscode.Uri): boolean {
+  return vscode.workspace.getWorkspaceFolder(resource) !== undefined
+}
+
 export async function getProblems(uri?: string): Promise<ProblemDiagnostics[]> {
   try {
     if (uri) {
@@ -20,10 +24,12 @@ export async function getProblems(uri?: string): Promise<ProblemDiagnostics[]> {
     }
 
     logger.info('Getting all workspace problems')
-    return vscode.languages.getDiagnostics().map(([resource, diagnostics]) => ({
-      uri: resource,
-      diagnostics,
-    }))
+    return vscode.languages.getDiagnostics()
+      .filter(([resource]) => isWorkspaceResource(resource))
+      .map(([resource, diagnostics]) => ({
+        uri: resource,
+        diagnostics,
+      }))
   }
   catch (error) {
     logger.error('Failed to get problems', error)

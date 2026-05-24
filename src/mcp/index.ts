@@ -4,11 +4,24 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js'
 import express from 'express'
 import { window, workspace } from 'vscode'
+import { logger } from '../utils/logger'
 import { transports } from './config'
 import { cors } from './cors'
 import { handleSessionRequest } from './session'
 import { startServer } from './startServer'
 import { addLspTools } from './tools'
+
+function getErrorDetails(error: unknown): Record<string, unknown> {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      code: 'code' in error ? error.code : undefined,
+    }
+  }
+
+  return { message: String(error) }
+}
 
 export function startMcp() {
   const config = workspace.getConfiguration('lsp-mcp')
@@ -23,6 +36,7 @@ export function startMcp() {
   const exposeHeadersStr: string = config.get('cors.exposeHeaders', 'Mcp-Session-Id')
 
   if (!isMcpEnabled) {
+    logger.warn('LSP MCP server is disabled by configuration.')
     window.showInformationMessage('LSP MCP server is disabled by configuration.')
     return
   }
@@ -43,58 +57,91 @@ export function startMcp() {
 
   // Handle POST requests for client-to-server communication
   app.post('/mcp', async (req, res) => {
-    // Check for existing session ID
-    const sessionId = req.headers['mcp-session-id'] as string | undefined
-    let transport: StreamableHTTPServerTransport
+    let phase = 'routing request'
+    let sessionId = req.headers['mcp-session-id'] as string | undefined
 
-    if (sessionId && transports[sessionId]) {
-      // Reuse existing transport
-      transport = transports[sessionId]
-    }
-    else if (!sessionId && isInitializeRequest(req.body)) {
-      // New initialization request
-      transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
-        onsessioninitialized: (sessionId) => {
-          // Store the transport by session ID
-          transports[sessionId] = transport
-        },
-        allowedHosts: ['127.0.0.1', 'localhost'],
-      })
+    try {
+      let transport: StreamableHTTPServerTransport
 
-      // Clean up transport when closed
-      transport.onclose = () => {
-        if (transport.sessionId) {
-          delete transports[transport.sessionId]
+      if (sessionId && transports[sessionId]) {
+        // Reuse existing transport
+        transport = transports[sessionId]
+      }
+      else if (!sessionId && isInitializeRequest(req.body)) {
+        phase = 'initializing MCP transport'
+        // New initialization request
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: (newSessionId) => {
+            // Store the transport by session ID
+            sessionId = newSessionId
+            transports[newSessionId] = transport
+            logger.info(`MCP session initialized: ${newSessionId}`)
+          },
+          allowedHosts: ['127.0.0.1', 'localhost'],
+        })
+
+        // Clean up transport when closed
+        transport.onclose = () => {
+          if (transport.sessionId) {
+            logger.info(`MCP session closed: ${transport.sessionId}`)
+            delete transports[transport.sessionId]
+          }
         }
+
+        const server = new McpServer({
+          name: 'lsp-server',
+          version: '0.0.2',
+        })
+
+        // Add LSP tools to the server
+        addLspTools(server)
+
+        phase = 'connecting MCP server to transport'
+        // Connect to the MCP server
+        await server.connect(transport)
+      }
+      else {
+        // Invalid request
+        res.status(400).json({
+          jsonrpc: '2.0',
+          error: {
+            code: -32000,
+            message: 'Bad Request: No valid session ID provided',
+            data: {
+              sessionIdProvided: Boolean(sessionId),
+              knownSessionIds: Object.keys(transports),
+              initializeRequest: isInitializeRequest(req.body),
+            },
+          },
+          id: null,
+        })
+        return
       }
 
-      const server = new McpServer({
-        name: 'lsp-server',
-        version: '0.0.2',
-      })
-
-      // Add LSP tools to the server
-      addLspTools(server)
-
-      // Connect to the MCP server
-      await server.connect(transport)
+      phase = 'handling MCP request'
+      // Handle the request
+      await transport.handleRequest(req, res, req.body)
     }
-    else {
-      // Invalid request
-      res.status(400).json({
+    catch (error) {
+      logger.error(`MCP POST /mcp failed while ${phase}`, error)
+
+      if (res.headersSent)
+        return
+
+      res.status(500).json({
         jsonrpc: '2.0',
         error: {
-          code: -32000,
-          message: 'Bad Request: No valid session ID provided',
+          code: -32603,
+          message: `MCP request failed while ${phase}`,
+          data: {
+            sessionId,
+            ...getErrorDetails(error),
+          },
         },
-        id: null,
+        id: req.body?.id ?? null,
       })
-      return
     }
-
-    // Handle the request
-    await transport.handleRequest(req, res, req.body)
   })
 
   // Handle GET requests for server-to-client notifications via SSE
