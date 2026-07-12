@@ -151,6 +151,7 @@ VSCode LSP MCP 是一个 Visual Studio Code 扩展。**扩展 ID**：`cjl.lsp-mc
 | `lsp-mcp.maxResults`           | `workspace_symbols` 等列表类结果的最大条目数，防止 token 溢出 | `number` | `200` |
 | `lsp-mcp.outputFormat`         | LSP 操作结果的输出格式。`json` 为机器可读 JSON，`markdown` 为 LLM 友好的 Markdown                  | `string`  | `json` |
 | `lsp-mcp.dependencyMarkers` | 用于排序和 `includeExternal=false` 的依赖路径识别子串 | `string[]` | 各语言默认值 |
+| `lsp-mcp.operations.*` | 单独开关每个 LSP 操作（默认全开）。25 个操作各有独立配置项，例如 `lsp-mcp.operations.diagnostics: false` 关闭诊断，`lsp-mcp.operations.class_file_contents: false` 关闭 Java 反编译源码查询。完整列表见设置界面。 | `boolean` | `true` |
 
 <!-- configs -->
 

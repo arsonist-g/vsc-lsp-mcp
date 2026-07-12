@@ -58,6 +58,7 @@ export function addBrokerTools(server: McpServer, locale: string): void {
         operationIntentDescription,
         lspSafetyDescription,
         'Pass instanceId when multiple VS Code instances cover the same project.',
+        'Some operations may be disabled by lsp-mcp.operations.* settings; calling a disabled operation returns an error.',
       ].map(tMcp).join('\n\n'),
       inputSchema: {
         operation: z.enum(lspOperations).describe(tMcp('Operation selected by intent. See the tool description for position and safety requirements.')),

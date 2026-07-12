@@ -1,0 +1,60 @@
+# 构建工作流（CI）
+#
+# 每次 push（任意分支）/ pull_request 自动构建：
+# typecheck → test → build → 打包 VSIX，并上传产物供下载。
+# 本工作流不发布到任何市场；如需发布请在本地执行 pnpm 的 release 脚本。
+
+name: Build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+# 同一分支新推送取消旧的在途运行，节省 CI 资源
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (CI)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Package VSIX
+        run: pnpm vsix
+
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: lsp-mcp-vsix
+          path: lsp-mcp.vsix
+          retention-days: 14

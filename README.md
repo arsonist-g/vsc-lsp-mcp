@@ -152,6 +152,7 @@ For example, the built-in TypeScript provider updates relative imports and barre
 | `lsp-mcp.maxResults`           | Maximum number of items returned for list-type results such as `workspace_symbols`. Prevents excessive token usage. | `number` | `200` |
 | `lsp-mcp.outputFormat`         | Output format for LSP operation results. `json` for machine-readable JSON, `markdown` for LLM-friendly Markdown.                     | `string`  | `json` |
 | `lsp-mcp.dependencyMarkers`    | Path substrings used to classify dependency results for sorting and `includeExternal=false`. | `string[]` | language-specific defaults |
+| `lsp-mcp.operations.*`         | Toggle each LSP operation on/off (default all on). Each of the 25 operations has its own key, e.g. `lsp-mcp.operations.diagnostics: false` disables diagnostics, `lsp-mcp.operations.class_file_contents: false` disables Java decompiled-source lookup. See the Settings UI for the full list. | `boolean` | `true` |
  
 <!-- configs -->
 

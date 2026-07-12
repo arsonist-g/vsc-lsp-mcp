@@ -48,6 +48,19 @@ vi.mock('../transform', () => ({
   },
 }))
 
+const { disabledOperations } = vi.hoisted(() => ({
+  disabledOperations: new Set<string>(),
+}))
+
+vi.mock('vscode', () => ({
+  workspace: {
+    getConfiguration: vi.fn(() => ({
+      get: (key: string, defaultValue: boolean) =>
+        disabledOperations.has(key) ? false : defaultValue,
+    })),
+  },
+}))
+
 describe('executeLspOperation', () => {
   it('converts 1-based protocol positions to 0-based VS Code positions', async () => {
     const { executeLspOperation } = await import('./tools')
@@ -113,5 +126,17 @@ describe('executeLspOperation', () => {
       includeExternal: false,
     })).resolves.toBe('incoming-calls')
     expect(getIncomingCalls).toHaveBeenCalledWith('call-1', false)
+  })
+
+  it('rejects operations disabled via lsp-mcp.operations.* settings', async () => {
+    disabledOperations.add('class_file_contents')
+    const { executeLspOperation } = await import('./tools')
+
+    await expect(executeLspOperation({
+      operation: 'class_file_contents',
+      uri: 'jdt://contents/foo',
+    })).rejects.toThrow(/disabled/)
+
+    disabledOperations.clear()
   })
 })

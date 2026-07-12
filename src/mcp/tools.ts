@@ -26,11 +26,15 @@ import {
   previewRename,
 } from '../lsp'
 import { validateExecuteLspInput } from '../protocol'
+import { isOperationEnabled } from '../operationConfig'
 import { transform } from '../transform'
 
 /** 在当前 VS Code 窗口中执行经过 Broker 路由的 LSP 操作 */
 export async function executeLspOperation(input: ExecuteLspInput): Promise<string> {
   validateExecuteLspInput(input)
+
+  if (!isOperationEnabled(input.operation))
+    throw new Error(`Operation "${input.operation}" is disabled by lsp-mcp.operations.${input.operation}`)
 
   const {
     operation,

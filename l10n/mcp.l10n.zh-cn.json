@@ -3,6 +3,7 @@
   "Report the global VS Code LSP MCP broker status.": "查看全局 VS Code LSP MCP Broker 状态。",
   "List active VS Code workspace instances. Use instanceId to select one explicitly.": "列出活动的 VS Code 工作区实例。使用 instanceId 显式选择实例。",
   "Pass instanceId when multiple VS Code instances cover the same project.": "多个 VS Code 实例覆盖同一项目时请传入 instanceId。",
+  "Some operations may be disabled by lsp-mcp.operations.* settings; calling a disabled operation returns an error.": "部分操作可能被 lsp-mcp.operations.* 设置禁用；调用被禁用的操作会返回错误。",
   "Exact instance ID returned by list_instances. Optional when the path matches one instance.": "list_instances 返回的精确实例 ID。路径只匹配一个实例时可省略。",
   "Optional document_symbols kind filter, for example function, class, or interface.": "document_symbols 的可选符号类型筛选，例如 function、class 或 interface。",
   "Whether references include symbol declarations. Defaults to true; false is best-effort because the VS Code command does not expose the LSP includeDeclaration option.": "references 是否包含符号声明，默认为 true；由于 VS Code 命令未暴露 LSP includeDeclaration 选项，false 采用尽力而为的过滤。",

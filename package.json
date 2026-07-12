@@ -117,6 +117,156 @@
             "zh-cn"
           ],
           "description": "%lsp-mcp.configuration.mcpLocale.description%"
+        },
+        "lsp-mcp.operations.hover": {
+          "type": "boolean",
+          "default": true,
+          "order": 10,
+          "description": "%lsp-mcp.configuration.operations.hover.description%"
+        },
+        "lsp-mcp.operations.definition": {
+          "type": "boolean",
+          "default": true,
+          "order": 11,
+          "description": "%lsp-mcp.configuration.operations.definition.description%"
+        },
+        "lsp-mcp.operations.declaration": {
+          "type": "boolean",
+          "default": true,
+          "order": 12,
+          "description": "%lsp-mcp.configuration.operations.declaration.description%"
+        },
+        "lsp-mcp.operations.type_definition": {
+          "type": "boolean",
+          "default": true,
+          "order": 13,
+          "description": "%lsp-mcp.configuration.operations.type_definition.description%"
+        },
+        "lsp-mcp.operations.implementation": {
+          "type": "boolean",
+          "default": true,
+          "order": 14,
+          "description": "%lsp-mcp.configuration.operations.implementation.description%"
+        },
+        "lsp-mcp.operations.references": {
+          "type": "boolean",
+          "default": true,
+          "order": 20,
+          "description": "%lsp-mcp.configuration.operations.references.description%"
+        },
+        "lsp-mcp.operations.document_highlight": {
+          "type": "boolean",
+          "default": true,
+          "order": 21,
+          "description": "%lsp-mcp.configuration.operations.document_highlight.description%"
+        },
+        "lsp-mcp.operations.prepare_call_hierarchy": {
+          "type": "boolean",
+          "default": true,
+          "order": 30,
+          "description": "%lsp-mcp.configuration.operations.prepare_call_hierarchy.description%"
+        },
+        "lsp-mcp.operations.incoming_calls": {
+          "type": "boolean",
+          "default": true,
+          "order": 31,
+          "description": "%lsp-mcp.configuration.operations.incoming_calls.description%"
+        },
+        "lsp-mcp.operations.outgoing_calls": {
+          "type": "boolean",
+          "default": true,
+          "order": 32,
+          "description": "%lsp-mcp.configuration.operations.outgoing_calls.description%"
+        },
+        "lsp-mcp.operations.document_symbols": {
+          "type": "boolean",
+          "default": true,
+          "order": 40,
+          "description": "%lsp-mcp.configuration.operations.document_symbols.description%"
+        },
+        "lsp-mcp.operations.workspace_symbols": {
+          "type": "boolean",
+          "default": true,
+          "order": 41,
+          "description": "%lsp-mcp.configuration.operations.workspace_symbols.description%"
+        },
+        "lsp-mcp.operations.signature_help": {
+          "type": "boolean",
+          "default": true,
+          "order": 42,
+          "description": "%lsp-mcp.configuration.operations.signature_help.description%"
+        },
+        "lsp-mcp.operations.inlay_hints": {
+          "type": "boolean",
+          "default": true,
+          "order": 43,
+          "description": "%lsp-mcp.configuration.operations.inlay_hints.description%"
+        },
+        "lsp-mcp.operations.document_links": {
+          "type": "boolean",
+          "default": true,
+          "order": 44,
+          "description": "%lsp-mcp.configuration.operations.document_links.description%"
+        },
+        "lsp-mcp.operations.diagnostics": {
+          "type": "boolean",
+          "default": true,
+          "order": 50,
+          "description": "%lsp-mcp.configuration.operations.diagnostics.description%"
+        },
+        "lsp-mcp.operations.workspace_diagnostics": {
+          "type": "boolean",
+          "default": true,
+          "order": 51,
+          "description": "%lsp-mcp.configuration.operations.workspace_diagnostics.description%"
+        },
+        "lsp-mcp.operations.code_actions": {
+          "type": "boolean",
+          "default": true,
+          "order": 60,
+          "description": "%lsp-mcp.configuration.operations.code_actions.description%"
+        },
+        "lsp-mcp.operations.code_action_preview": {
+          "type": "boolean",
+          "default": true,
+          "order": 61,
+          "description": "%lsp-mcp.configuration.operations.code_action_preview.description%"
+        },
+        "lsp-mcp.operations.fix_document_preview": {
+          "type": "boolean",
+          "default": true,
+          "order": 62,
+          "description": "%lsp-mcp.configuration.operations.fix_document_preview.description%"
+        },
+        "lsp-mcp.operations.code_action_apply": {
+          "type": "boolean",
+          "default": true,
+          "order": 63,
+          "description": "%lsp-mcp.configuration.operations.code_action_apply.description%"
+        },
+        "lsp-mcp.operations.prepare_rename": {
+          "type": "boolean",
+          "default": true,
+          "order": 70,
+          "description": "%lsp-mcp.configuration.operations.prepare_rename.description%"
+        },
+        "lsp-mcp.operations.rename_preview": {
+          "type": "boolean",
+          "default": true,
+          "order": 71,
+          "description": "%lsp-mcp.configuration.operations.rename_preview.description%"
+        },
+        "lsp-mcp.operations.rename_apply": {
+          "type": "boolean",
+          "default": true,
+          "order": 72,
+          "description": "%lsp-mcp.configuration.operations.rename_apply.description%"
+        },
+        "lsp-mcp.operations.class_file_contents": {
+          "type": "boolean",
+          "default": true,
+          "order": 80,
+          "description": "%lsp-mcp.configuration.operations.class_file_contents.description%"
         }
       }
     }
