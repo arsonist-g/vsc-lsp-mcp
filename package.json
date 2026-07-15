@@ -1,15 +1,15 @@
 {
   "name": "lsp-mcp",
   "displayName": "LSP MCP",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "LSP MCP Server for VS Code",
-  "publisher": "CJL",
-  "author": "CJL <2662442385@qq.com>",
+  "publisher": "arsonist-g",
+  "author": "arsonist-g <273544676+arsonist-g@users.noreply.github.com>",
   "license": "MIT",
-  "homepage": "https://github.com/beixiyo/vsc-lsp-mcp",
+  "homepage": "https://github.com/arsonist-g/vsc-lsp-mcp",
   "repository": {
     "type": "git",
-    "url": "https://github.com/beixiyo/vsc-lsp-mcp"
+    "url": "https://github.com/arsonist-g/vsc-lsp-mcp"
   },
   "categories": [
     "Other"
@@ -220,6 +220,18 @@
           "order": 51,
           "description": "%lsp-mcp.configuration.operations.workspace_diagnostics.description%"
         },
+        "lsp-mcp.operations.diagnostics_refresh": {
+          "type": "boolean",
+          "default": true,
+          "order": 52,
+          "description": "%lsp-mcp.configuration.operations.diagnostics_refresh.description%"
+        },
+        "lsp-mcp.operations.workspace_diagnostics_refresh": {
+          "type": "boolean",
+          "default": true,
+          "order": 53,
+          "description": "%lsp-mcp.configuration.operations.workspace_diagnostics_refresh.description%"
+        },
         "lsp-mcp.operations.code_actions": {
           "type": "boolean",
           "default": true,
@@ -275,7 +287,7 @@
     "build": "tsup",
     "dev": "tsup --watch --sourcemap",
     "lint": "eslint src --fix",
-    "vscode:prepublish": "pnpm build",
+    "vscode:prepublish": "tsup",
     "vsix": "vsce package --no-dependencies --out lsp-mcp.vsix",
     "release:prepare": "pnpm test && pnpm typecheck && pnpm vsix",
     "release:vscode": "pnpm release:prepare && vsce publish --no-dependencies --packagePath lsp-mcp.vsix",

@@ -5,17 +5,17 @@
 </p>
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=CJL.lsp-mcp">
-    <img alt="VS Marketplace Version" src="https://badgen.net/vs-marketplace/v/CJL.lsp-mcp" />
+  <a href="https://marketplace.visualstudio.com/items?itemName=arsonist-g.lsp-mcp">
+    <img alt="VS Marketplace Version" src="https://badgen.net/vs-marketplace/v/arsonist-g.lsp-mcp" />
   </a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=CJL.lsp-mcp">
-    <img alt="VS Marketplace Installs" src="https://badgen.net/vs-marketplace/i/CJL.lsp-mcp" />
+  <a href="https://marketplace.visualstudio.com/items?itemName=arsonist-g.lsp-mcp">
+    <img alt="VS Marketplace Installs" src="https://badgen.net/vs-marketplace/i/arsonist-g.lsp-mcp" />
   </a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=CJL.lsp-mcp">
-    <img alt="VS Marketplace Rating" src="https://badgen.net/vs-marketplace/rating/CJL.lsp-mcp" />
+  <a href="https://marketplace.visualstudio.com/items?itemName=arsonist-g.lsp-mcp">
+    <img alt="VS Marketplace Rating" src="https://badgen.net/vs-marketplace/rating/arsonist-g.lsp-mcp" />
   </a>
-  <a href="https://github.com/beixiyo/vsc-lsp-mcp">
-    <img alt="GitHub Stars" src="https://img.shields.io/github/stars/beixiyo/vsc-lsp-mcp?style=flat" />
+  <a href="https://github.com/arsonist-g/vsc-lsp-mcp">
+    <img alt="GitHub Stars" src="https://img.shields.io/github/stars/arsonist-g/vsc-lsp-mcp?style=flat" />
   </a>
   <img alt="License" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" />
@@ -27,20 +27,19 @@
 
 ## 🔍 概述
 
-VSCode LSP MCP 是一个 Visual Studio Code 扩展。**扩展 ID**：`cjl.lsp-mcp`
+VSCode LSP MCP 是一个 Visual Studio Code 扩展。**扩展 ID**：`arsonist-g.lsp-mcp`
 
-在 VS Code 中打开扩展视图（`Ctrl+Shift+X` / `Cmd+Shift+X`），搜索 **cjl.lsp-mcp** 可精确找到本插件
+在 VS Code 中打开扩展视图（`Ctrl+Shift+X` / `Cmd+Shift+X`），搜索 **arsonist-g.lsp-mcp** 可精确找到本插件
 
 它通过模型上下文协议（MCP）暴露了语言服务器协议（LSP）功能。这使得 AI 助手和外部工具无需直接集成即可利用 VSCode 强大的语言智能功能
 
-> **使用 Neovim？** 请查看姊妹项目 [vv-mcp.nvim](https://github.com/beixiyo/vv-mcp.nvim)，它通过 MCP 暴露 Neovim LSP 客户端与实时编辑器上下文
+> **说明**
+> 本仓库是由 [arsonist-g](https://github.com/arsonist-g) 维护的**独立续作版本**。
+> 基于原作者 [寅时码 / beixiyo](https://github.com/beixiyo) 的开源项目 [beixiyo/vsc-lsp-mcp](https://github.com/beixiyo/vsc-lsp-mcp)。
+> 扩展 ID `arsonist-g.lsp-mcp` 以及 `0.3.1` 起的发布仅代表本 fork，**不是**原作者的市场版本。
 
 ![vscode-ext](./docAssets/vsc-ext.webp)
 ![demo](./docAssets/demo.webp)
-
-<a href="https://glama.ai/mcp/servers/@beixiyo/vsc-lsp-mcp">
-  <img width="380" height="200" src="https://glama.ai/mcp/servers/@beixiyo/vsc-lsp-mcp/badge" alt="VSCode LSP Server MCP server" />
-</a>
 
 ### 🌟 为什么需要这个扩展？
 
@@ -58,7 +57,7 @@ VSCode LSP MCP 是一个 Visual Studio Code 扩展。**扩展 ID**：`cjl.lsp-mc
 - 🔄 **LSP 桥接**：将 LSP 功能转换为 MCP 工具
 - 🤖 **VS Code Copilot 集成**：直接将本地 MCP 服务器注册到 VS Code Chat / Copilot
 - 🔌 **多实例 Broker**：通过一个稳定 MCP 入口发现并路由到所有已打开的 VS Code 窗口
-- 🧠 **25 项 LSP 操作**：涵盖代码导航、诊断、文档元数据、符号、调用层级、事务式重命名与安全 Code Action
+- 🧠 **27 项 LSP 操作**：涵盖代码导航、诊断（含刷新等待稳定）、文档元数据、符号、调用层级、事务式重命名与安全 Code Action
 - ☕ **Java 依赖源码**：通过 `jdt://` URI 获取 jdtls 反编译的类源码，便于 AI 阅读依赖库实现
 - 📄 **双格式输出**：JSON 用于机器处理，Markdown 用于 LLM 友好阅读
 
@@ -89,6 +88,8 @@ VSCode LSP MCP 是一个 Visual Studio Code 扩展。**扩展 ID**：`cjl.lsp-mc
 | `workspace_symbols` | 按查询词在整个工作区搜索符号 |
 | `diagnostics` | 获取单个文件诊断，可按严重级别、来源和代码筛选 |
 | `workspace_diagnostics` | 获取工作区路径下经过筛选的诊断 |
+| `diagnostics_refresh` | 改代码后刷新并等待单文件诊断稳定 |
+| `workspace_diagnostics_refresh` | 改代码后刷新并等待工作区路径下诊断稳定 |
 | `code_actions` | 列出指定位置可编辑的 Code Action |
 | `code_action_preview` | 无副作用地预览一个 Code Action |
 | `fix_document_preview` | 预览整个文档可编辑的 fix-all 或 quick-fix 编辑 |
@@ -111,6 +112,7 @@ VSCode LSP MCP 是一个 Visual Studio Code 扩展。**扩展 ID**：`cjl.lsp-mc
 - `query` — 仅 `workspace_symbols` 操作需要
 - `symbolKinds`、`includeDeclaration`、`includeExternal`、`pathPattern`、`severities`、`sources`、`codes` — 可选筛选参数，在 `maxResults` 前生效
 - `startLine`、`endLine` — `inlay_hints` 的可选包含式范围
+- `timeoutMs` — `diagnostics_refresh` / `workspace_diagnostics_refresh` 的可选最大等待时间
 - `callId` — 调用层级操作返回，用于递归遍历
 - `instanceId` — 可选，来自 `list_instances`；传入后优先于路径自动路由
 

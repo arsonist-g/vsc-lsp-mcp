@@ -2,8 +2,8 @@
 
 这个项目发布到两个扩展市场：
 
-- VS Code Marketplace：`CJL.lsp-mcp`
-- Open VSX：`CJL/lsp-mcp`
+- VS Code Marketplace：`arsonist-g.lsp-mcp`
+- Open VSX：`arsonist-g/lsp-mcp`
 
 ## Token 配置
 
@@ -11,7 +11,7 @@ VS Code Marketplace 使用 `VSCE_PAT`：
 
 - 官方说明：https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token
 - Token 入口：https://dev.azure.com/
-- 直接路径：`https://dev.azure.com/<你的 Azure DevOps 组织名>/_usersSettings/tokens` 如 https://dev.azure.com/2662442385/_usersSettings/tokens
+- 直接路径：`https://dev.azure.com/<你的 Azure DevOps 组织名>/_usersSettings/tokens`
 - Scope：选择 `Custom defined`，展开 `Show all scopes`，勾选 `Marketplace > Manage`
 
 ```bash
@@ -60,10 +60,10 @@ pnpm release:all
 
 ## 首次 Open VSX 配置
 
-如果 `CJL` namespace 还没有创建，先执行：
+如果 `arsonist-g` namespace 还没有创建，先执行：
 
 ```bash
-pnpm exec ovsx create-namespace CJL
+pnpm exec ovsx create-namespace arsonist-g
 ```
 
 Open VSX 的 namespace 必须和 `package.json` 里的 `publisher` 保持一致

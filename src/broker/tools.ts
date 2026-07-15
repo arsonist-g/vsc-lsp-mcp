@@ -18,6 +18,8 @@ import {
 } from '../protocol'
 
 const INSTANCE_REQUEST_TIMEOUT_MS = 30_000
+/** 单次请求允许的最大等待上限，防止 refresh 类操作被滥用（默认 10 分钟） */
+const MAX_REQUEST_TIMEOUT_MS = 600_000
 
 /** 注册 Broker 对外暴露的实例发现、LSP 与工作区工具 */
 export function addBrokerTools(server: McpServer, locale: string): void {
@@ -77,6 +79,7 @@ export function addBrokerTools(server: McpServer, locale: string): void {
         severities: z.array(z.enum(diagnosticSeverityFilters)).optional().describe(tMcp('Optional diagnostics severity filter.')),
         sources: z.array(z.string().min(1)).optional().describe(tMcp('Optional diagnostics source filter; matching is case-insensitive.')),
         codes: z.array(z.string().min(1)).optional().describe(tMcp('Optional diagnostics code filter; numeric codes are passed as strings.')),
+        timeoutMs: z.number().int().min(1).optional().describe(tMcp('Optional max wait in milliseconds for diagnostics_refresh / workspace_diagnostics_refresh to settle. Defaults to 10000 for one file or 25000 for a workspace; raised for this request only, never the global default.')),
         startLine: z.number().int().min(1).optional().describe(tMcp('Optional 1-based start line for inlay_hints. Defaults to the first line.')),
         endLine: z.number().int().min(1).optional().describe(tMcp('Optional 1-based inclusive end line for inlay_hints. Defaults to the last line.')),
         callId: z.string().min(1).optional().describe(tMcp('Call hierarchy node ID returned by prepare_call_hierarchy or a previous calls result. Reuse the same instanceId for recursive calls.')),
@@ -134,7 +137,7 @@ async function forward(
         'x-lsp-mcp-token': instance.token,
       },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(INSTANCE_REQUEST_TIMEOUT_MS),
+      signal: AbortSignal.timeout(resolveRequestTimeout(body)),
     })
     const payload = await response.json() as ForwardResponse
     if (payload.error)
@@ -176,6 +179,14 @@ function assertLoopbackEndpoint(endpoint: string): void {
   const url = new URL(endpoint)
   if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1')
     throw new Error('VS Code instance endpoint must use the 127.0.0.1 loopback address')
+}
+
+/** 计算转发到实例的请求超时：默认 30s；refresh 类操作可按 timeoutMs 延长，但不超过硬上限 */
+function resolveRequestTimeout(body: ExecuteLspInput | RenameResourceInput): number {
+  const requested = (body as ExecuteLspInput).timeoutMs
+  if (!requested)
+    return INSTANCE_REQUEST_TIMEOUT_MS
+  return Math.min(Math.max(requested, INSTANCE_REQUEST_TIMEOUT_MS), MAX_REQUEST_TIMEOUT_MS)
 }
 
 interface ForwardResponse {

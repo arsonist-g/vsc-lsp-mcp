@@ -1,5 +1,20 @@
 ## Unreleased
 
+## [0.3.2] - 2026-07-15
+
+### Fixed
+- 升级扩展后不再复用旧版本独立 Broker 进程：`/health` 与 `broker.json` 写入包版本，`ensureBroker` 在版本不匹配时回收旧进程并启动新 Broker
+- 修复仅重装/重连 MCP 仍看到旧 `execute_lsp` operation 列表（如缺少 `diagnostics_refresh`）的问题
+
+## [0.3.1] - 2026-07-15
+
+### Added
+- 新增 `diagnostics_refresh` 与 `workspace_diagnostics_refresh`：改码后可刷新并等待诊断稳定，返回当前诊断与 `stable` / `in_progress` 状态
+- 新增对应的 `lsp-mcp.operations.diagnostics_refresh` / `workspace_diagnostics_refresh` 逐项开关
+
+### Changed
+- 扩展 publisher / Extension ID 调整为 `arsonist-g.lsp-mcp`（与 `CJL.lsp-mcp` 区分）
+
 ## [0.3.0] - 2026-07-11
 
 ### Breaking

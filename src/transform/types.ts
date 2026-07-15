@@ -1,3 +1,5 @@
+import type { RefreshStatus } from '../lsp/diagnosticsRefresh'
+
 /**
  * Formatter interface for converting flattened LSP data into formatted text output.
  *
@@ -26,6 +28,9 @@ export interface Formatter {
   formatLocations: (locations: Record<string, any>[], label?: string) => string
 
   formatDiagnostics: (items: Record<string, any>[], workspace: boolean) => string
+
+  /** 同 formatDiagnostics，但额外附加 refresh 的稳定状态标志 */
+  formatDiagnosticsRefresh: (items: Record<string, any>[], workspace: boolean, status: RefreshStatus) => string
 
   formatDocumentHighlights: (items: Record<string, any>[]) => string
 

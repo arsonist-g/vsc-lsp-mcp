@@ -28,6 +28,8 @@
   "lsp-mcp.configuration.operations.document_links.description": "启用 document_links。获取当前语言扩展提供的可导航文档链接。",
   "lsp-mcp.configuration.operations.diagnostics.description": "启用 diagnostics。获取单个文件的诊断，可选按严重级别、来源、错误码过滤。",
   "lsp-mcp.configuration.operations.workspace_diagnostics.description": "启用 workspace_diagnostics。获取工作区路径下的过滤诊断。",
+  "lsp-mcp.configuration.operations.diagnostics_refresh.description": "启用 diagnostics_refresh。改代码后刷新并等待单文件诊断稳定；返回当前诊断及状态（stable 或 in_progress）。",
+  "lsp-mcp.configuration.operations.workspace_diagnostics_refresh.description": "启用 workspace_diagnostics_refresh。改代码后刷新并等待工作区路径下诊断稳定；返回当前诊断及状态。",
   "lsp-mcp.configuration.operations.code_actions.description": "启用 code_actions。列出指定位置可编辑的 Code Action。属于 Code Action 流程（code_actions → code_action_preview → code_action_apply）；需一起启用。",
   "lsp-mcp.configuration.operations.code_action_preview.description": "启用 code_action_preview。无副作用地预览一个已列出的 Code Action。属于 Code Action 流程；请保持 code_action_apply 启用，否则预览无法应用。",
   "lsp-mcp.configuration.operations.fix_document_preview.description": "启用 fix_document_preview。预览整文档的 fix-all 或 quick-fix 编辑。结果交给 code_action_apply 应用；请保持其启用。",

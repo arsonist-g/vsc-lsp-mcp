@@ -11,6 +11,11 @@ export function brokerStatePath(registryRoot = getRegistryRoot()): string {
   return join(registryRoot, 'broker.json')
 }
 
+/** 获取共享 Broker 启动锁路径 */
+export function brokerLockPath(registryRoot = getRegistryRoot()): string {
+  return join(registryRoot, 'broker.lock')
+}
+
 /** 读取当前 Broker 的进程、端口和协议版本信息 */
 export async function readBrokerState(
   registryRoot = getRegistryRoot(),
@@ -51,5 +56,7 @@ export interface BrokerState {
   pid: number
   port: number
   protocolVersion: number
+  /** 扩展包版本；旧 Broker 可能缺失，缺失时视为不可复用 */
+  version?: string
   updatedAt: number
 }

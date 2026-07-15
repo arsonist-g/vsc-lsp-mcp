@@ -35,6 +35,21 @@ describe('execute_lsp input contract', () => {
     })).toThrow('non-empty "query"')
   })
 
+  it.each([0, -1])('rejects non-positive timeoutMs for refresh operations: %s', (timeoutMs) => {
+    expect(() => validateExecuteLspInput({
+      operation: 'diagnostics_refresh',
+      uri: '/code/main.ts',
+      timeoutMs,
+    })).toThrow('positive integer')
+  })
+
+  it('accepts refresh operations without timeoutMs', () => {
+    expect(() => validateExecuteLspInput({
+      operation: 'workspace_diagnostics_refresh',
+      uri: '/code',
+    })).not.toThrow()
+  })
+
   it('rejects relative paths and non-JDT class file requests', () => {
     expect(() => validateExecuteLspInput({ operation: 'document_symbols', uri: 'src/main.ts' }))
       .toThrow('absolute Unix/Windows path')

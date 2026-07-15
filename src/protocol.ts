@@ -15,6 +15,8 @@ export const lspOperations = [
   'workspace_symbols',
   'diagnostics',
   'workspace_diagnostics',
+  'diagnostics_refresh',
+  'workspace_diagnostics_refresh',
   'code_actions',
   'code_action_preview',
   'fix_document_preview',
@@ -73,6 +75,8 @@ No position required:
 - workspace_symbols: search project symbols; query is required and must not be empty.
 - diagnostics: diagnostics for one file; optional severities, sources, and codes filters.
 - workspace_diagnostics: diagnostics under a workspace path; optional severities, sources, and codes filters.
+- diagnostics_refresh: after a code change, refresh and wait for settled diagnostics of one file; returns current diagnostics with a status (stable or in_progress). Optional timeoutMs.
+- workspace_diagnostics_refresh: after a code change, refresh and wait for settled diagnostics under a workspace path; returns current diagnostics with a status. Optional timeoutMs.
 - code_action_preview: inspect one actionId returned by code_actions without modifying files.
 - fix_document_preview: preview editable source.fixAll or quick-fix edits for the whole document.
 - document_links: navigable targets in one document.
@@ -167,6 +171,11 @@ export function validateExecuteLspInput(input: ExecuteLspInput): void {
     if (input.startLine != null && input.endLine != null && input.startLine > input.endLine)
       throw new Error('"startLine" must not exceed "endLine"')
   }
+
+  if (input.operation === 'diagnostics_refresh' || input.operation === 'workspace_diagnostics_refresh') {
+    if (input.timeoutMs != null && (!Number.isInteger(input.timeoutMs) || input.timeoutMs < 1))
+      throw new Error('"timeoutMs" must be a positive integer')
+  }
 }
 
 /** 校验资源重命名的路径输入，只允许本地绝对路径与 file URI */
@@ -207,6 +216,7 @@ export interface ExecuteLspInput {
   renameId?: string
   actionId?: string
   actionKind?: string
+  timeoutMs?: number
 }
 
 export type SymbolKindFilter = typeof symbolKindFilters[number]

@@ -28,6 +28,8 @@
   "lsp-mcp.configuration.operations.document_links.description": "Enable document_links. Get navigable document links exposed by the active language extension.",
   "lsp-mcp.configuration.operations.diagnostics.description": "Enable diagnostics. Get diagnostics for one file with optional severity, source, and code filters.",
   "lsp-mcp.configuration.operations.workspace_diagnostics.description": "Enable workspace_diagnostics. Get filtered diagnostics under a workspace path.",
+  "lsp-mcp.configuration.operations.diagnostics_refresh.description": "Enable diagnostics_refresh. After a code change, refresh and wait for settled diagnostics of one file; returns current diagnostics with a status (stable or in_progress).",
+  "lsp-mcp.configuration.operations.workspace_diagnostics_refresh.description": "Enable workspace_diagnostics_refresh. After a code change, refresh and wait for settled diagnostics under a workspace path; returns current diagnostics with a status.",
   "lsp-mcp.configuration.operations.code_actions.description": "Enable code_actions. List editable Code Actions at a position. Part of the Code Action flow (code_actions → code_action_preview → code_action_apply); keep them enabled together.",
   "lsp-mcp.configuration.operations.code_action_preview.description": "Enable code_action_preview. Preview one listed Code Action without side effects. Part of the Code Action flow; keep code_action_apply enabled or the preview cannot be applied.",
   "lsp-mcp.configuration.operations.fix_document_preview.description": "Enable fix_document_preview. Preview editable fix-all or quick-fix edits for an entire document. Feeds code_action_apply; keep it enabled.",

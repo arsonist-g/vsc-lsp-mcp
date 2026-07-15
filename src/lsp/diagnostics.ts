@@ -36,7 +36,7 @@ export function getDiagnostics(
   })
 }
 
-function isUnderTarget(uri: vscode.Uri, target: vscode.Uri): boolean {
+export function isUnderTarget(uri: vscode.Uri, target: vscode.Uri): boolean {
   if (uri.scheme !== target.scheme)
     return false
   const root = target.fsPath.replaceAll('\\', '/').replace(/\/$/, '')

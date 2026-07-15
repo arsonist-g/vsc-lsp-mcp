@@ -24,6 +24,7 @@ import {
   previewCodeAction,
   previewDocumentFix,
   previewRename,
+  refreshDiagnostics,
 } from '../lsp'
 import { validateExecuteLspInput } from '../protocol'
 import { isOperationEnabled } from '../operationConfig'
@@ -98,6 +99,16 @@ export async function executeLspOperation(input: ExecuteLspInput): Promise<strin
       return transform.formatDiagnostics(getDiagnostics(uri, false, { severities, sources, codes }), false)
     case 'workspace_diagnostics':
       return transform.formatDiagnostics(getDiagnostics(uri, true, { severities, sources, codes }), true)
+
+    // 诊断刷新：等待稳定后读取，返回当前诊断 + 稳定状态（stable / in_progress）
+    case 'diagnostics_refresh': {
+      const refreshed = await refreshDiagnostics(uri, false, { severities, sources, codes }, input.timeoutMs)
+      return transform.formatDiagnosticsRefresh(refreshed.items, false, refreshed.status)
+    }
+    case 'workspace_diagnostics_refresh': {
+      const refreshed = await refreshDiagnostics(uri, true, { severities, sources, codes }, input.timeoutMs)
+      return transform.formatDiagnosticsRefresh(refreshed.items, true, refreshed.status)
+    }
 
     // 单点与全文件 Code Action 事务
     case 'code_actions':

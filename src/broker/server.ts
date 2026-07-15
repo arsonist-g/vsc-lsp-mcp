@@ -34,7 +34,11 @@ export async function startBroker(options: BrokerOptions): Promise<BrokerHandle>
 
   app.use(express.json({ limit: '1mb' }))
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', protocolVersion: BROKER_PROTOCOL_VERSION })
+    res.json({
+      status: 'ok',
+      protocolVersion: BROKER_PROTOCOL_VERSION,
+      version: pkg.version,
+    })
   })
 
   const handleMcp = async (req: express.Request, res: express.Response) => {
@@ -89,6 +93,7 @@ export async function startBroker(options: BrokerOptions): Promise<BrokerHandle>
     pid: process.pid,
     port,
     protocolVersion: BROKER_PROTOCOL_VERSION,
+    version: pkg.version,
     updatedAt: Date.now(),
   })
 
@@ -101,6 +106,7 @@ export async function startBroker(options: BrokerOptions): Promise<BrokerHandle>
         pid: process.pid,
         port,
         protocolVersion: BROKER_PROTOCOL_VERSION,
+        version: pkg.version,
         updatedAt: Date.now(),
       })
 

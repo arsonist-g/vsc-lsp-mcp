@@ -1,7 +1,14 @@
 import type { ExtensionContext } from 'vscode'
 import { spawn } from 'node:child_process'
+import { rm } from 'node:fs/promises'
+import pkg from '../../package.json'
 import { getRegistryRoot } from '../instance/registry'
-import { BROKER_PROTOCOL_VERSION, readBrokerState } from './state'
+import {
+  BROKER_PROTOCOL_VERSION,
+  brokerLockPath,
+  readBrokerState,
+  removeBrokerState,
+} from './state'
 
 const BROKER_START_TIMEOUT_MS = 5_000
 
@@ -14,20 +21,24 @@ export async function ensureBroker(
   options: BrokerLaunchOptions,
 ): Promise<number> {
   const registryRoot = getRegistryRoot()
-  const activePort = await activeBrokerPort(registryRoot)
+  const expectedVersion = pkg.version
+  const activePort = await activeBrokerPort(registryRoot, expectedVersion)
   if (activePort != null)
     return activePort
 
+  // 健康检查失败或版本不匹配时，先回收旧 Broker，避免锁/端口卡住新进程
+  await reclaimMismatchedBroker(registryRoot, expectedVersion)
+
   const brokerPath = context.asAbsolutePath('dist/broker.js')
   for (let attempt = 0; attempt < 2; attempt++) {
-    const activePort = await activeBrokerPort(registryRoot)
+    const activePort = await activeBrokerPort(registryRoot, expectedVersion)
     if (activePort != null)
       return activePort
 
     spawnBroker(brokerPath, registryRoot, options)
     const deadline = Date.now() + BROKER_START_TIMEOUT_MS
     while (Date.now() < deadline) {
-      const port = await activeBrokerPort(registryRoot)
+      const port = await activeBrokerPort(registryRoot, expectedVersion)
       if (port != null)
         return port
       await new Promise(resolve => setTimeout(resolve, 50))
@@ -66,7 +77,19 @@ export interface BrokerLaunchOptions {
   locale: string
 }
 
-async function activeBrokerPort(registryRoot: string): Promise<number | undefined> {
+/** 判断运行中的 Broker 是否与当前扩展版本兼容，可被复用 */
+export function isCompatibleBrokerHealth(
+  health: { protocolVersion?: number, version?: string },
+  expectedVersion: string,
+): boolean {
+  return health.protocolVersion === BROKER_PROTOCOL_VERSION
+    && health.version === expectedVersion
+}
+
+async function activeBrokerPort(
+  registryRoot: string,
+  expectedVersion: string,
+): Promise<number | undefined> {
   const state = await readBrokerState(registryRoot)
   if (!state)
     return undefined
@@ -75,11 +98,41 @@ async function activeBrokerPort(registryRoot: string): Promise<number | undefine
     const response = await fetch(`http://127.0.0.1:${state.port}/health`, {
       signal: AbortSignal.timeout(500),
     })
-    const health = await response.json() as { protocolVersion?: number }
-    if (response.ok && health.protocolVersion === BROKER_PROTOCOL_VERSION)
+    const health = await response.json() as { protocolVersion?: number, version?: string }
+    if (response.ok && isCompatibleBrokerHealth(health, expectedVersion))
       return state.port
   }
   catch {}
 
   return undefined
+}
+
+/**
+ * 回收协议版本或扩展版本不匹配、或已无响应的旧 Broker
+ * 旧版本只写 protocolVersion、不写 version，也会被这里识别并替换
+ */
+async function reclaimMismatchedBroker(
+  registryRoot: string,
+  expectedVersion: string,
+): Promise<void> {
+  const state = await readBrokerState(registryRoot)
+  if (!state)
+    return
+
+  // 若仍是兼容版本则不碰
+  if (await activeBrokerPort(registryRoot, expectedVersion) != null)
+    return
+
+  if (state.pid > 0) {
+    try {
+      process.kill(state.pid)
+    }
+    catch {}
+  }
+
+  await removeBrokerState(registryRoot, state.pid)
+  await rm(brokerLockPath(registryRoot), { force: true }).catch(() => {})
+
+  // 给端口释放一点时间
+  await new Promise(resolve => setTimeout(resolve, 100))
 }

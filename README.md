@@ -5,17 +5,17 @@
 </p>
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=CJL.lsp-mcp">
-    <img alt="VS Marketplace Version" src="https://badgen.net/vs-marketplace/v/CJL.lsp-mcp" />
+  <a href="https://marketplace.visualstudio.com/items?itemName=arsonist-g.lsp-mcp">
+    <img alt="VS Marketplace Version" src="https://badgen.net/vs-marketplace/v/arsonist-g.lsp-mcp" />
   </a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=CJL.lsp-mcp">
-    <img alt="VS Marketplace Installs" src="https://badgen.net/vs-marketplace/i/CJL.lsp-mcp" />
+  <a href="https://marketplace.visualstudio.com/items?itemName=arsonist-g.lsp-mcp">
+    <img alt="VS Marketplace Installs" src="https://badgen.net/vs-marketplace/i/arsonist-g.lsp-mcp" />
   </a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=CJL.lsp-mcp">
-    <img alt="VS Marketplace Rating" src="https://badgen.net/vs-marketplace/rating/CJL.lsp-mcp" />
+  <a href="https://marketplace.visualstudio.com/items?itemName=arsonist-g.lsp-mcp">
+    <img alt="VS Marketplace Rating" src="https://badgen.net/vs-marketplace/rating/arsonist-g.lsp-mcp" />
   </a>
-  <a href="https://github.com/beixiyo/vsc-lsp-mcp">
-    <img alt="GitHub Stars" src="https://img.shields.io/github/stars/beixiyo/vsc-lsp-mcp?style=flat" />
+  <a href="https://github.com/arsonist-g/vsc-lsp-mcp">
+    <img alt="GitHub Stars" src="https://img.shields.io/github/stars/arsonist-g/vsc-lsp-mcp?style=flat" />
   </a>
   <img alt="License" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" />
@@ -29,19 +29,17 @@
 
 VSCode LSP MCP is a Visual Studio Code extension that exposes Language Server Protocol (LSP) features through the Model Context Protocol (MCP).
 
-**Extension ID**: `cjl.lsp-mcp` — open Extensions (`Ctrl+Shift+X` / `Cmd+Shift+X`) and search for **cjl.lsp-mcp** to find this plugin precisely.
+**Extension ID**: `arsonist-g.lsp-mcp` — open Extensions (`Ctrl+Shift+X` / `Cmd+Shift+X`) and search for **arsonist-g.lsp-mcp** to find this plugin precisely.
 
 This allows AI assistants and external tools to utilize VSCode's powerful language intelligence capabilities without direct integration.
 
-> [!TIP]
-> **Using Neovim?** See [vv-mcp.nvim](https://github.com/beixiyo/vv-mcp.nvim), the sibling implementation that exposes Neovim LSP clients and live editor context through MCP.
+> [!NOTE]
+> This repository is an **independent continued version** maintained by [arsonist-g](https://github.com/arsonist-g).
+> It is based on the original open-source project [beixiyo/vsc-lsp-mcp](https://github.com/beixiyo/vsc-lsp-mcp) by [寅时码 / beixiyo](https://github.com/beixiyo).
+> The Extension ID `arsonist-g.lsp-mcp` and releases from `0.3.1` onward are published for this fork only, and are **not** the original author's marketplace listing.
 
 ![vscode-ext](./docAssets/vsc-ext.webp)
 ![demo](./docAssets/demo.webp)
-
-<a href="https://glama.ai/mcp/servers/@beixiyo/vsc-lsp-mcp">
-  <img width="380" height="200" src="https://glama.ai/mcp/servers/@beixiyo/vsc-lsp-mcp/badge" alt="VSCode LSP Server MCP server" />
-</a>
 
 ### 🌟 Why This Extension?
 
@@ -59,7 +57,7 @@ This extension bridges that gap, providing AI tools with the same code intellige
 - 🔄 **LSP Bridge**: Converts LSP features into MCP tools
 - 🤖 **VS Code Copilot integration**: Registers the local MCP server directly with VS Code Chat / Copilot
 - 🔌 **Multi-Instance Broker**: One stable MCP endpoint discovers and routes requests across all open VS Code windows
-- 🧠 **25 LSP operations** covering navigation, diagnostics, document metadata, symbols, call hierarchy, transactional rename, and safe Code Actions
+- 🧠 **27 LSP operations** covering navigation, diagnostics (including refresh-and-wait), document metadata, symbols, call hierarchy, transactional rename, and safe Code Actions
 - ☕ **Java dependency source**: Get decompiled Java class source via jdt:// URI (from jdtls), so AI can read library implementations
 - 📄 **Dual output format**: JSON for machine processing, Markdown for LLM-friendly reading
 
@@ -90,6 +88,8 @@ This extension bridges that gap, providing AI tools with the same code intellige
 | `workspace_symbols` | Search for symbols across the entire workspace by query |
 | `diagnostics` | Get diagnostics for one file with optional severity, source, and code filters |
 | `workspace_diagnostics` | Get filtered diagnostics under a workspace path |
+| `diagnostics_refresh` | After a code change, refresh and wait for settled diagnostics of one file |
+| `workspace_diagnostics_refresh` | After a code change, refresh and wait for settled diagnostics under a workspace path |
 | `code_actions` | List editable Code Actions at a position |
 | `code_action_preview` | Preview one listed Code Action without side effects |
 | `fix_document_preview` | Preview editable fix-all or quick-fix edits for an entire document |
@@ -112,6 +112,7 @@ All operations are invoked through the single `execute_lsp` MCP tool with a unif
 - `query` — required only for `workspace_symbols`
 - `symbolKinds`, `includeDeclaration`, `includeExternal`, `pathPattern`, `severities`, `sources`, `codes` — optional result filters applied before `maxResults`
 - `startLine`, `endLine` — optional inclusive range for `inlay_hints`
+- `timeoutMs` — optional max wait for `diagnostics_refresh` / `workspace_diagnostics_refresh`
 - `callId` — returned by call hierarchy operations for recursive traversal
 - `instanceId` — optional instance returned by `list_instances`; takes precedence over automatic path routing
 

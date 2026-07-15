@@ -54,9 +54,28 @@ describe('multi-instance broker', () => {
     const executeLsp = tools.tools.find(tool => tool.name === 'execute_lsp')
     expect(executeLsp?.description).toContain('CHOOSE BY INTENT')
     expect(executeLsp?.description).toContain('prepare_rename -> rename_preview(newName) -> rename_apply(renameId)')
+    expect(executeLsp?.description).toContain('diagnostics_refresh')
     expect(executeLsp?.inputSchema.properties).toMatchObject({
       line: { minimum: 1 },
       character: { minimum: 1 },
+    })
+    const operationEnum = (executeLsp?.inputSchema.properties as {
+      operation?: { enum?: string[] }
+    } | undefined)?.operation?.enum
+    expect(operationEnum).toEqual(expect.arrayContaining([
+      'diagnostics_refresh',
+      'workspace_diagnostics_refresh',
+    ]))
+
+    const health = await fetch(`http://127.0.0.1:${broker.port}/health`).then(r => r.json()) as {
+      status: string
+      protocolVersion: number
+      version?: string
+    }
+    expect(health).toMatchObject({
+      status: 'ok',
+      protocolVersion: 1,
+      version: expect.stringMatching(/^\d+\.\d+\.\d+/),
     })
 
     const listed = await client.callTool({ name: 'list_instances', arguments: {} })

@@ -1,5 +1,6 @@
 import type { CallNode, IncomingCallNode, OutgoingCallNode } from '../lsp/callHierarchy'
 import type { CodeActionApplied, CodeActionPreview, CodeActionSummary } from '../lsp/codeActions'
+import type { RefreshStatus } from '../lsp/diagnosticsRefresh'
 import type { PrepareRenameResult, RenameApplied, RenamePreview } from '../lsp/rename'
 import type { ResourceRenameResult } from '../workspace'
 import type { Formatter } from './types'
@@ -120,6 +121,17 @@ export class TransformService {
     return this._formatLimited(
       items.map(item => flattenDiagnostic(item.uri, item.diagnostic)),
       limited => this._getFormatter().formatDiagnostics(limited, workspace),
+    )
+  }
+
+  formatDiagnosticsRefresh(
+    items: { uri: vscode.Uri, diagnostic: vscode.Diagnostic }[],
+    workspace: boolean,
+    status: RefreshStatus,
+  ): string {
+    return this._formatLimited(
+      items.map(item => flattenDiagnostic(item.uri, item.diagnostic)),
+      limited => this._getFormatter().formatDiagnosticsRefresh(limited, workspace, status),
     )
   }
 

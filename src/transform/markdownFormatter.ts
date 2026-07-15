@@ -1,3 +1,4 @@
+import type { RefreshStatus } from '../lsp/diagnosticsRefresh'
 import type { Formatter } from './types'
 import { tMcp } from '../i18n'
 
@@ -78,6 +79,11 @@ export class MarkdownFormatter implements Formatter {
       }),
     ])
     return `## ${title}\n\n${lines.join('\n')}`
+  }
+
+  formatDiagnosticsRefresh(items: Record<string, any>[], workspace: boolean, status: RefreshStatus): string {
+    const body = this.formatDiagnostics(items, workspace)
+    return `${body}\n\n${tMcp('Refresh status: {state} after {elapsedMs} ms.', { state: status.state, elapsedMs: status.elapsedMs })}`
   }
 
   formatDocumentHighlights(items: Record<string, any>[]): string {

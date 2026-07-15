@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 const getHover = vi.fn(async () => [])
 const formatHover = vi.fn(() => 'hover')
 const getDiagnostics = vi.fn(() => [])
+const refreshDiagnostics = vi.fn(async () => ({ items: [], status: { state: 'stable' as const, elapsedMs: 0 } }))
 const previewDocumentFix = vi.fn(async () => ({ actionId: 'action-1' }))
 const applyCodeAction = vi.fn(async () => ({ actionId: 'action-1' }))
 const previewRename = vi.fn(async () => ({ renameId: 'rename-1' }))
@@ -18,6 +19,7 @@ vi.mock('../lsp', () => ({
   getDocumentLinks: vi.fn(),
   getInlayHints: vi.fn(),
   getDiagnostics,
+  refreshDiagnostics,
   getCodeActions: vi.fn(),
   previewCodeAction: vi.fn(),
   previewDocumentFix,
@@ -40,6 +42,7 @@ vi.mock('../transform', () => ({
   transform: {
     formatHover,
     formatDiagnostics: vi.fn(() => 'diagnostics'),
+    formatDiagnosticsRefresh: vi.fn(() => 'diagnostics-refresh'),
     formatCodeActionPreview: vi.fn(() => 'action-preview'),
     formatCodeActionApplied: vi.fn(() => 'action-applied'),
     formatRenamePreview: vi.fn(() => 'rename-preview'),
@@ -126,6 +129,25 @@ describe('executeLspOperation', () => {
       includeExternal: false,
     })).resolves.toBe('incoming-calls')
     expect(getIncomingCalls).toHaveBeenCalledWith('call-1', false)
+  })
+
+  it('dispatches diagnostics_refresh with timeoutMs and a status payload', async () => {
+    const { executeLspOperation } = await import('./tools')
+
+    await expect(executeLspOperation({
+      operation: 'diagnostics_refresh',
+      uri: '/code/main.ts',
+      severities: ['warning'],
+      timeoutMs: 5000,
+    })).resolves.toBe('diagnostics-refresh')
+    expect(refreshDiagnostics).toHaveBeenCalledWith('/code/main.ts', false, { severities: ['warning'], sources: undefined, codes: undefined }, 5000)
+
+    await expect(executeLspOperation({
+      operation: 'workspace_diagnostics_refresh',
+      uri: '/code',
+      timeoutMs: 25000,
+    })).resolves.toBe('diagnostics-refresh')
+    expect(refreshDiagnostics).toHaveBeenCalledWith('/code', true, { severities: undefined, sources: undefined, codes: undefined }, 25000)
   })
 
   it('rejects operations disabled via lsp-mcp.operations.* settings', async () => {

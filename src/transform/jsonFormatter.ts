@@ -1,3 +1,4 @@
+import type { RefreshStatus } from '../lsp/diagnosticsRefresh'
 import type { Formatter } from './types'
 
 /** 将扁平化结果序列化为具有稳定顶层结构的 JSON */
@@ -22,6 +23,10 @@ export class JsonFormatter implements Formatter {
 
   formatDiagnostics(items: Record<string, any>[], _workspace: boolean): string {
     return list(groupByFile(items))
+  }
+
+  formatDiagnosticsRefresh(items: Record<string, any>[], workspace: boolean, status: RefreshStatus): string {
+    return JSON.stringify({ ...JSON.parse(this.formatDiagnostics(items, workspace)), status })
   }
 
   formatDocumentHighlights(items: Record<string, any>[]): string {
